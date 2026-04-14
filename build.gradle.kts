@@ -29,22 +29,18 @@ dependencyManagement {
 }
 
 dependencies {
-    // Starter 核心
     implementation("org.springframework.boot:spring-boot-autoconfigure")
     implementation("org.springframework.boot:spring-boot-starter-data-redis")
-
-    // Actuator 健康檢查（compileOnly：使用端自行決定是否引入）
     compileOnly("org.springframework.boot:spring-boot-starter-actuator")
-
-    // IDE 提示（application.yml 自動補全）
     annotationProcessor("org.springframework.boot:spring-boot-configuration-processor")
 
-    // 測試
     testImplementation("org.springframework.boot:spring-boot-starter-test")
     testImplementation("org.springframework.boot:spring-boot-starter-actuator")
+    testImplementation("org.springframework.boot:spring-boot-testcontainers")
+    testImplementation("com.redis:testcontainers-redis:2.2.2")
+
     testRuntimeOnly("org.junit.platform:junit-platform-launcher")
 }
-
 tasks.withType<Test> {
     useJUnitPlatform()
 }
