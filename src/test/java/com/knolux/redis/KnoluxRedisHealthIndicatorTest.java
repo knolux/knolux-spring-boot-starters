@@ -68,6 +68,7 @@ class KnoluxRedisHealthIndicatorTest {
 
         Health health = healthIndicator.health();
 
+        assert health != null;
         assertThat(health.getStatus()).isEqualTo(Status.DOWN);
     }
 }

@@ -52,6 +52,7 @@ class KnoluxRedisStandaloneIntegrationTest {
 
     @Test
     void ping_shouldSucceed() {
+        assert redis.getConnectionFactory() != null;
         assertThat(redis.getConnectionFactory().getConnection().ping())
                 .isEqualTo("PONG");
     }
