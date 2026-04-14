@@ -41,6 +41,7 @@ dependencies {
 
     // 測試
     testImplementation("org.springframework.boot:spring-boot-starter-test")
+    testImplementation("org.springframework.boot:spring-boot-starter-actuator")
     testRuntimeOnly("org.junit.platform:junit-platform-launcher")
 }
 

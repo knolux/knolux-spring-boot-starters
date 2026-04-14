@@ -9,6 +9,10 @@ import java.time.Duration;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
+/**
+ * 測試 KnoluxRedisProperties 屬性綁定。
+ * 不需要 Redis 連線，只驗證 application.yml 設定是否正確對應到 Properties 物件。
+ */
 @SpringBootTest(
         classes = KnoluxRedisPropertiesTest.TestConfig.class,
         properties = {
@@ -26,26 +30,28 @@ class KnoluxRedisPropertiesTest {
     KnoluxRedisProperties properties;
 
     @Test
-    void urlIsBound() {
+    void url_shouldBeBound() {
         assertThat(properties.getUrl())
                 .isEqualTo("redis://:testpassword@localhost:6379");
     }
 
     @Test
-    void timeoutIsBound() {
+    void timeoutMs_shouldBeBound() {
         assertThat(properties.getTimeoutMs())
                 .isEqualTo(Duration.ofMillis(2000));
     }
 
     @Test
-    void readFromIsBound() {
+    void readFrom_shouldBeBound() {
         assertThat(properties.getReadFrom())
                 .isEqualTo("MASTER");
     }
 
     @Test
-    void defaultReadFrom() {
-        assertThat(new KnoluxRedisProperties().getReadFrom())
-                .isEqualTo("REPLICA_PREFERRED");
+    void defaultValues_shouldBeCorrect() {
+        KnoluxRedisProperties defaults = new KnoluxRedisProperties();
+        assertThat(defaults.getReadFrom()).isEqualTo("REPLICA_PREFERRED");
+        assertThat(defaults.getTimeoutMs()).isEqualTo(Duration.ofMillis(1000));
+        assertThat(defaults.getUrl()).isNull();
     }
 }
