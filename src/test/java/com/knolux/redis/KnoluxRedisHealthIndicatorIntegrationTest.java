@@ -25,6 +25,8 @@ class KnoluxRedisHealthIndicatorIntegrationTest {
     static final RedisContainer REDIS = new RedisContainer(
             RedisContainer.DEFAULT_IMAGE_NAME.withTag("7.4")
     );
+    @Autowired
+    KnoluxRedisHealthIndicator healthIndicator;
 
     @BeforeAll
     static void startContainer() {
@@ -42,9 +44,6 @@ class KnoluxRedisHealthIndicatorIntegrationTest {
                 "redis://" + REDIS.getHost() + ":" + REDIS.getMappedPort(6379)
         );
     }
-
-    @Autowired
-    KnoluxRedisHealthIndicator healthIndicator;
 
     @Test
     void health_withRealRedis_shouldReturnUp() {

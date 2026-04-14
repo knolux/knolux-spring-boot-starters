@@ -23,9 +23,6 @@ import static org.assertj.core.api.Assertions.assertThat;
 )
 class KnoluxRedisPropertiesTest {
 
-    @EnableConfigurationProperties(KnoluxRedisProperties.class)
-    static class TestConfig {}
-
     @Autowired
     KnoluxRedisProperties properties;
 
@@ -53,5 +50,9 @@ class KnoluxRedisPropertiesTest {
         assertThat(defaults.getReadFrom()).isEqualTo("REPLICA_PREFERRED");
         assertThat(defaults.getTimeoutMs()).isEqualTo(Duration.ofMillis(1000));
         assertThat(defaults.getUrl()).isNull();
+    }
+
+    @EnableConfigurationProperties(KnoluxRedisProperties.class)
+    static class TestConfig {
     }
 }

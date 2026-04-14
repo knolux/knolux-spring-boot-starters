@@ -52,7 +52,35 @@ publishing {
             pom {
                 name.set("Knolux Redis Starter")
                 description.set("Redis Starter for Spring Boot, Support Sentinel and Directly")
+                url.set("https://github.com/knolux/knolux-redis-starter")
+                licenses {
+                    license {
+                        name.set("MIT License")
+                        url.set("https://opensource.org/licenses/MIT")
+                    }
+                }
             }
         }
+    }
+    repositories {
+        // GitHub Packages
+        maven {
+            name = "GitHubPackages"
+            url = uri("https://maven.pkg.github.com/knolux/knolux-redis-starter")
+            credentials {
+                username = System.getenv("GITHUB_ACTOR") ?: ""
+                password = System.getenv("GITHUB_TOKEN") ?: ""
+            }
+        }
+
+        //  // AIC Nexus（Optional）
+        //  maven {
+        //      name = "nexus"
+        //      url = uri("https://nexus.aic.org.tw/repository/maven-releases/")
+        //      credentials {
+        //          username = System.getenv("NEXUS_USERNAME") ?: ""
+        //          password = System.getenv("NEXUS_PASSWORD") ?: ""
+        //      }
+        //  }
     }
 }

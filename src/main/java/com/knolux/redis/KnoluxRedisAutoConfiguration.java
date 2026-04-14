@@ -127,7 +127,10 @@ public class KnoluxRedisAutoConfiguration {
 
     private int parseDb(String path) {
         if (path == null || path.isBlank() || "/".equals(path)) return 0;
-        try { return Integer.parseInt(path.replaceFirst("^/", "")); }
-        catch (NumberFormatException e) { return 0; }
+        try {
+            return Integer.parseInt(path.replaceFirst("^/", ""));
+        } catch (NumberFormatException e) {
+            return 0;
+        }
     }
 }

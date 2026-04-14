@@ -25,6 +25,10 @@ class KnoluxRedisSentinelIntegrationTest {
     static final RedisContainer REDIS = new RedisContainer(
             RedisContainer.DEFAULT_IMAGE_NAME.withTag("7.4")
     );
+    @Autowired
+    StringRedisTemplate redis;
+    @Autowired
+    LettuceConnectionFactory connectionFactory;
 
     @BeforeAll
     static void startContainer() {
@@ -42,12 +46,6 @@ class KnoluxRedisSentinelIntegrationTest {
                 "redis://" + REDIS.getHost() + ":" + REDIS.getMappedPort(6379)
         );
     }
-
-    @Autowired
-    StringRedisTemplate redis;
-
-    @Autowired
-    LettuceConnectionFactory connectionFactory;
 
     @AfterEach
     void tearDown() {

@@ -33,20 +33,20 @@ public class KnoluxRedisProperties {
         return url;
     }
 
-    public Duration getTimeoutMs() {
-        return timeoutMs;
-    }
-
-    public String getReadFrom() {
-        return readFrom;
-    }
-
     public void setUrl(String url) {
         this.url = url;
     }
 
+    public Duration getTimeoutMs() {
+        return timeoutMs;
+    }
+
     public void setTimeoutMs(Duration timeoutMs) {
         this.timeoutMs = timeoutMs;
+    }
+
+    public String getReadFrom() {
+        return readFrom;
     }
 
     public void setReadFrom(String readFrom) {

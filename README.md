@@ -1,6 +1,7 @@
 # knolux-redis-starter
 
-Spring Boot Starter for Redis — supports both **Sentinel (HA)** and **Standalone** modes via a single `REDIS_URL` environment variable.
+Spring Boot Starter for Redis — supports both **Sentinel (HA)** and **Standalone** modes via a single `REDIS_URL`
+environment variable.
 
 ## Features
 
@@ -33,6 +34,7 @@ dependencies {
 ### Maven
 
 ```xml
+
 <dependency>
     <groupId>com.knolux</groupId>
     <artifactId>redis</artifactId>
@@ -93,11 +95,13 @@ knolux:
 
 ## Usage
 
-The starter auto-configures `StringRedisTemplate` and `RedisTemplate<String, Object>`. Inject them directly into your services.
+The starter auto-configures `StringRedisTemplate` and `RedisTemplate<String, Object>`. Inject them directly into your
+services.
 
 ### StringRedisTemplate (String values)
 
 ```java
+
 @Service
 public class CacheService {
 
@@ -124,6 +128,7 @@ public class CacheService {
 ### RedisTemplate (Object values)
 
 ```java
+
 @Service
 public class SessionService {
 
@@ -149,8 +154,14 @@ Redis has no built-in namespace isolation. Use prefixes to separate data by serv
 
 ```java
 // Recommended prefix pattern: <service>:<entity>:<id>
-redis.opsForValue().set("backend-prod:session:user123", token);
-redis.opsForValue().set("backend-prod:cache:product456", data);
+redis.opsForValue().
+
+set("backend-prod:session:user123",token);
+redis.
+
+opsForValue().
+
+set("backend-prod:cache:product456",data);
 ```
 
 ---
@@ -235,6 +246,7 @@ GET /actuator/health
 Use `@ConditionalOnMissingBean` — define your own bean to override the defaults:
 
 ```java
+
 @Configuration
 public class CustomRedisConfig {
 

@@ -24,6 +24,8 @@ class KnoluxRedisStandaloneIntegrationTest {
     static final RedisContainer REDIS = new RedisContainer(
             RedisContainer.DEFAULT_IMAGE_NAME.withTag("7.4")
     );
+    @Autowired
+    StringRedisTemplate redis;
 
     @BeforeAll
     static void startContainer() {
@@ -41,9 +43,6 @@ class KnoluxRedisStandaloneIntegrationTest {
                 "redis://" + REDIS.getHost() + ":" + REDIS.getMappedPort(6379)
         );
     }
-
-    @Autowired
-    StringRedisTemplate redis;
 
     @AfterEach
     void tearDown() {
