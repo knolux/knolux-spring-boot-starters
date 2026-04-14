@@ -30,14 +30,14 @@ class KnoluxRedisHealthIndicatorTest {
 
     @BeforeEach
     void setUp() {
-        // ✅ 只放所有測試都需要的共用 stubbing
-        when(redisTemplate.getConnectionFactory()).thenReturn(connectionFactory);
+        // ✅ setUp 完全移除 stubbing，只建立 healthIndicator
         healthIndicator = new KnoluxRedisHealthIndicator(redisTemplate);
     }
 
+
     @Test
     void health_whenRedisIsUp_shouldReturnStatusUp() {
-        // ✅ 此測試才需要 getConnection()，放在這裡
+        when(redisTemplate.getConnectionFactory()).thenReturn(connectionFactory);
         when(connectionFactory.getConnection()).thenReturn(connection);
         when(connection.ping()).thenReturn("PONG");
 
@@ -50,7 +50,7 @@ class KnoluxRedisHealthIndicatorTest {
 
     @Test
     void health_whenRedisThrowsException_shouldReturnStatusDown() {
-        // ✅ 此測試才需要 getConnection()，放在這裡
+        when(redisTemplate.getConnectionFactory()).thenReturn(connectionFactory);
         when(connectionFactory.getConnection()).thenReturn(connection);
         when(connection.ping()).thenThrow(new RuntimeException("Connection refused"));
 
@@ -58,17 +58,18 @@ class KnoluxRedisHealthIndicatorTest {
 
         assertThat(health).isNotNull();
         assertThat(health.getStatus()).isEqualTo(Status.DOWN);
-        assertThat(health.getDetails()).containsKey("error");
+        assertThat(health.getDetails()).containsEntry("error", "Connection refused");
     }
 
     @Test
     void health_whenConnectionFactoryIsNull_shouldReturnStatusDown() {
-        // ✅ 此測試覆寫 connectionFactory 為 null，不需要 getConnection()
+        // ✅ 這裡獨立設定，不與 setUp 衝突
         when(redisTemplate.getConnectionFactory()).thenReturn(null);
 
         Health health = healthIndicator.health();
 
-        assert health != null;
+        assertThat(health).isNotNull();
         assertThat(health.getStatus()).isEqualTo(Status.DOWN);
+        assertThat(health.getDetails()).containsEntry("error", "Connection factory is null");
     }
 }
