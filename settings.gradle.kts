@@ -1,1 +1,3 @@
-rootProject.name = "redis"
+rootProject.name = "knolux-starters"
+
+include(":knolux-redis")

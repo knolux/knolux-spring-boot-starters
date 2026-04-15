@@ -1,84 +1,68 @@
+import io.spring.gradle.dependencymanagement.dsl.DependencyManagementExtension
+
 plugins {
-    `java-library`
-    `maven-publish`
     id("org.springframework.boot") version "4.0.5" apply false
-    id("io.spring.dependency-management") version "1.1.7"
+    id("io.spring.dependency-management") version "1.1.7" apply false
 }
 
-group = "com.knolux"
-version = "1.0.0"
-description = "Redis Starter for Spring Boot, Support Sentinel and Directly"
-
-java {
-    sourceCompatibility = JavaVersion.VERSION_25
-    targetCompatibility = JavaVersion.VERSION_25
-    toolchain {
-        languageVersion = JavaLanguageVersion.of(25)
-    }
-    withSourcesJar()
-}
-
-repositories {
-    mavenCentral()
-}
-
-dependencyManagement {
-    imports {
-        mavenBom("org.springframework.boot:spring-boot-dependencies:4.0.5")
+allprojects {
+    group = "com.knolux"
+    repositories {
+        mavenCentral()
     }
 }
 
-dependencies {
-    implementation("org.springframework.boot:spring-boot-autoconfigure")
-    implementation("org.springframework.boot:spring-boot-starter-data-redis")
-    compileOnly("org.springframework.boot:spring-boot-starter-actuator")
-    annotationProcessor("org.springframework.boot:spring-boot-configuration-processor")
+subprojects {
+    apply(plugin = "java-library")
+    apply(plugin = "maven-publish")
+    apply(plugin = "io.spring.dependency-management")
 
-    testImplementation("org.springframework.boot:spring-boot-starter-test")
-    testImplementation("org.springframework.boot:spring-boot-starter-actuator")
-    testImplementation("org.springframework.boot:spring-boot-testcontainers")
-    testImplementation("com.redis:testcontainers-redis:2.2.2")
+    extensions.configure<JavaPluginExtension> {
+        toolchain {
+            languageVersion = JavaLanguageVersion.of(25)
+        }
+        withSourcesJar()
+    }
 
-    testRuntimeOnly("org.junit.platform:junit-platform-launcher")
-}
-tasks.withType<Test> {
-    useJUnitPlatform()
-}
+    extensions.configure<DependencyManagementExtension> {
+        imports {
+            mavenBom("org.springframework.boot:spring-boot-dependencies:4.0.5")
+        }
+    }
 
-publishing {
-    publications {
-        create<MavenPublication>("maven") {
-            from(components["java"])
+    tasks.withType<Test> {
+        useJUnitPlatform()
+    }
 
-            versionMapping {
-                usage("java-api") {
-                    fromResolutionOf("runtimeClasspath")
+    extensions.configure<PublishingExtension> {
+        publications {
+            create<MavenPublication>("maven") {
+                from(components["java"])
+                versionMapping {
+                    usage("java-api") { fromResolutionOf("runtimeClasspath") }
+                    usage("java-runtime") { fromResolutionResult() }
                 }
-                usage("java-runtime") {
-                    fromResolutionResult()
-                }
-            }
-
-            pom {
-                name.set("Knolux Redis Starter")
-                description.set("Redis Starter for Spring Boot, Support Sentinel and Directly")
-                url.set("https://github.com/knolux/knolux-redis-starter")
-                licenses {
-                    license {
-                        name.set("MIT License")
-                        url.set("https://opensource.org/licenses/MIT")
+                pom {
+                    name.set(project.name)
+                    description.set(project.description ?: "")
+                    url.set("https://github.com/knolux/knolux-starters")
+                    licenses {
+                        license {
+                            name.set("MIT License")
+                            url.set("https://opensource.org/licenses/MIT")
+                        }
                     }
                 }
             }
         }
-    }
-    repositories {
-        maven {
-            name = "GitHubPackages"
-            url = uri("https://maven.pkg.github.com/knolux/knolux-redis-starter")
-            credentials {
-                username = System.getenv("GITHUB_ACTOR") ?: ""
-                password = System.getenv("GITHUB_TOKEN") ?: ""
+        repositories {
+            maven {
+                name = "GitHubPackages"
+                url = uri("https://maven.pkg.github.com/knolux/knolux-starters")
+                credentials {
+                    username = System.getenv("GITHUB_ACTOR") ?: ""
+                    password = System.getenv("GITHUB_TOKEN") ?: ""
+                }
             }
         }
     }

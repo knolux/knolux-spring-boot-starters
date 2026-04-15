@@ -35,3 +35,9 @@ out/
 
 ### VS Code ###
 .vscode/
+
+### Local ###
+logs_*/
+.env
+.env.local
+.claude/

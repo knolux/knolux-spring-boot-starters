@@ -1,0 +1,18 @@
+[versions]
+spring-boot                  = "4.0.5"
+spring-dependency-management = "1.1.7"
+testcontainers-redis         = "2.2.2"
+
+[libraries]
+spring-boot-autoconfigure           = { module = "org.springframework.boot:spring-boot-autoconfigure" }
+spring-boot-starter-data-redis      = { module = "org.springframework.boot:spring-boot-starter-data-redis" }
+spring-boot-starter-actuator        = { module = "org.springframework.boot:spring-boot-starter-actuator" }
+spring-boot-configuration-processor = { module = "org.springframework.boot:spring-boot-configuration-processor" }
+spring-boot-starter-test            = { module = "org.springframework.boot:spring-boot-starter-test" }
+spring-boot-testcontainers          = { module = "org.springframework.boot:spring-boot-testcontainers" }
+testcontainers-redis                = { module = "com.redis:testcontainers-redis", version.ref = "testcontainers-redis" }
+junit-platform-launcher             = { module = "org.junit.platform:junit-platform-launcher" }
+
+[plugins]
+spring-boot                  = { id = "org.springframework.boot",        version.ref = "spring-boot" }
+spring-dependency-management = { id = "io.spring.dependency-management", version.ref = "spring-dependency-management" }

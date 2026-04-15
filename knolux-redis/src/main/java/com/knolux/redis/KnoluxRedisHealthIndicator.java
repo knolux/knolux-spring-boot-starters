@@ -20,15 +20,20 @@ public class KnoluxRedisHealthIndicator implements HealthIndicator {
     @Override
     public @Nullable Health health() {
         try {
-            assert redis.getConnectionFactory() != null;
-            var conn = redis.getConnectionFactory().getConnection();
+            var connectionFactory = redis.getConnectionFactory();
+            if (connectionFactory == null) {
+                return Health.down()
+                        .withDetail("error", "Connection factory is null")
+                        .build();
+            }
+            var conn = connectionFactory.getConnection();
             String pong = conn.ping();
             return Health.up()
                     .withDetail("ping", pong)
                     .build();
         } catch (Exception ex) {
             return Health.down()
-                    .withException(ex)
+                    .withDetail("error", ex.getMessage())
                     .build();
         }
     }
