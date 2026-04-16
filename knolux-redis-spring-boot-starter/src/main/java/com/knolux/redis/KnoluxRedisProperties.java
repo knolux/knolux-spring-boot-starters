@@ -4,6 +4,18 @@ import org.springframework.boot.context.properties.ConfigurationProperties;
 
 import java.time.Duration;
 
+/**
+ * {@code knolux.redis.*} 設定屬性。
+ *
+ * <p>使用範例（{@code application.yml}）：
+ * <pre>{@code
+ * knolux:
+ *   redis:
+ *     url: redis://:password@localhost:6379
+ *     timeout-ms: 1000ms
+ *     read-from: REPLICA_PREFERRED
+ * }</pre>
+ */
 @ConfigurationProperties(prefix = "knolux.redis")
 public class KnoluxRedisProperties {
 
