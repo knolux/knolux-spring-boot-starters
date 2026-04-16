@@ -1,4 +1,4 @@
-# knolux-redis
+# knolux-redis-spring-boot-starter
 
 Spring Boot Starter for Redis — supports both **Sentinel (HA)** and **Standalone** modes via a single `REDIS_URL` environment variable.
 
@@ -26,7 +26,7 @@ Spring Boot Starter for Redis — supports both **Sentinel (HA)** and **Standalo
 
 ```kotlin
 dependencies {
-    implementation("com.knolux:knolux-redis:1.0.0")
+    implementation("com.knolux:knolux-redis-spring-boot-starter:1.0.0")
 }
 ```
 
@@ -35,7 +35,7 @@ dependencies {
 ```xml
 <dependency>
     <groupId>com.knolux</groupId>
-    <artifactId>knolux-redis</artifactId>
+    <artifactId>knolux-redis-spring-boot-starter</artifactId>
     <version>1.0.0</version>
 </dependency>
 ```
@@ -263,7 +263,7 @@ public class CustomRedisConfig {
 
 ```bash
 # From repo root
-./gradlew :knolux-redis:test
+./gradlew :knolux-redis-spring-boot-starter:test
 ```
 
 | Test Class                                  | Coverage                             |
