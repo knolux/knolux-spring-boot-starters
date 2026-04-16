@@ -7,7 +7,7 @@ Each module is independently versioned and published to GitHub Packages.
 
 | Module | Artifact | Description |
 |--------|----------|-------------|
-| [knolux-redis](./knolux-redis/README.md) | `com.knolux:knolux-redis` | Redis starter — Sentinel & Standalone via `REDIS_URL` |
+| [knolux-redis-spring-boot-starter](./knolux-redis-spring-boot-starter/README.md) | `com.knolux:knolux-redis-spring-boot-starter` | Redis starter — Sentinel & Standalone via `REDIS_URL` |
 
 ## Installation
 
@@ -16,7 +16,7 @@ Each module is independently versioned and published to GitHub Packages.
 ```kotlin
 repositories {
     maven {
-        url = uri("https://maven.pkg.github.com/knolux/knolux-starters")
+        url = uri("https://maven.pkg.github.com/knolux/knolux-spring-boot-starters")
         credentials {
             username = System.getenv("GITHUB_ACTOR")
             password = System.getenv("GITHUB_TOKEN")
@@ -25,7 +25,7 @@ repositories {
 }
 
 dependencies {
-    implementation("com.knolux:knolux-redis:1.0.0")
+    implementation("com.knolux:knolux-redis-spring-boot-starter:1.0.0")
 }
 ```
 
@@ -34,12 +34,12 @@ dependencies {
 ```xml
 <repository>
     <id>github</id>
-    <url>https://maven.pkg.github.com/knolux/knolux-starters</url>
+    <url>https://maven.pkg.github.com/knolux/knolux-spring-boot-starters</url>
 </repository>
 
 <dependency>
     <groupId>com.knolux</groupId>
-    <artifactId>knolux-redis</artifactId>
+    <artifactId>knolux-redis-spring-boot-starter</artifactId>
     <version>1.0.0</version>
 </dependency>
 ```
@@ -54,8 +54,8 @@ dependencies {
 Releases are triggered by module-scoped git tags:
 
 ```bash
-git tag knolux-redis/v1.0.1
-git push origin knolux-redis/v1.0.1
+git tag knolux-redis-spring-boot-starter/v1.0.1
+git push origin knolux-redis-spring-boot-starter/v1.0.1
 ```
 
 The CI workflow tests and publishes only the tagged module.
