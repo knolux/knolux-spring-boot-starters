@@ -34,6 +34,17 @@ subprojects {
         useJUnitPlatform()
     }
 
+    tasks.withType<Javadoc> {
+        options.encoding = "UTF-8"
+        (options as StandardJavadocDocletOptions).apply {
+            charSet("UTF-8")
+            encoding("UTF-8")
+            docEncoding("UTF-8")
+            locale("zh_TW")
+            addStringOption("Xdoclint:none", "-quiet")
+        }
+    }
+
     extensions.configure<PublishingExtension> {
         publications {
             create<MavenPublication>("maven") {
