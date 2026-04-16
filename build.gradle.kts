@@ -45,7 +45,7 @@ subprojects {
                 pom {
                     name.set(project.name)
                     description.set(project.description ?: "")
-                    url.set("https://github.com/knolux/knolux-starter")
+                    url.set("https://github.com/knolux/knolux-spring-boot-starters")
                     licenses {
                         license {
                             name.set("MIT License")
@@ -58,7 +58,7 @@ subprojects {
         repositories {
             maven {
                 name = "GitHubPackages"
-                url = uri("https://maven.pkg.github.com/knolux/knolux-starter")
+                url = uri("https://maven.pkg.github.com/knolux/knolux-spring-boot-starters")
                 credentials {
                     username = System.getenv("GITHUB_ACTOR") ?: ""
                     password = System.getenv("GITHUB_TOKEN") ?: ""
