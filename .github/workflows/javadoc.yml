@@ -1,0 +1,55 @@
+name: Publish Javadoc
+
+on:
+  push:
+    tags:
+      - '*/v*'    # e.g. knolux-redis-spring-boot-starter/v1.0.1
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+concurrency:
+  group: pages
+  cancel-in-progress: false
+
+jobs:
+  build-and-deploy:
+    name: Build & Deploy Javadoc
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-java@v4
+        with:
+          java-version: 25
+          distribution: temurin
+
+      - uses: gradle/actions/setup-gradle@v4
+
+      - name: Extract module from tag
+        id: meta
+        run: |
+          TAG=${GITHUB_REF_NAME}          # knolux-redis-spring-boot-starter/v1.0.1
+          MODULE=${TAG%/v*}               # knolux-redis-spring-boot-starter
+          echo "module=$MODULE" >> $GITHUB_OUTPUT
+
+      - name: Generate Javadoc
+        run: ./gradlew :${{ steps.meta.outputs.module }}:javadoc
+
+      - name: Configure Pages
+        uses: actions/configure-pages@v4
+
+      - name: Upload Pages artifact
+        uses: actions/upload-pages-artifact@v3
+        with:
+          path: ${{ steps.meta.outputs.module }}/build/docs/javadoc
+
+      - name: Deploy to GitHub Pages
+        id: deployment
+        uses: actions/deploy-pages@v4
