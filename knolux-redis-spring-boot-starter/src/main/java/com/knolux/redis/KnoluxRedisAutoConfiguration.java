@@ -17,6 +17,25 @@ import org.springframework.data.redis.serializer.StringRedisSerializer;
 
 import java.net.URI;
 
+/**
+ * Redis 自動設定。
+ *
+ * <p>根據 {@code knolux.redis.url} 的 URL scheme 自動建立下列 Bean：
+ * <ul>
+ *   <li>{@link org.springframework.data.redis.connection.lettuce.LettuceConnectionFactory} — 連線工廠</li>
+ *   <li>{@link org.springframework.data.redis.core.StringRedisTemplate} — 字串操作模板</li>
+ *   <li>{@link org.springframework.data.redis.core.RedisTemplate} — 物件操作模板（key 與 hash key 使用字串序列化）</li>
+ * </ul>
+ *
+ * <p>支援兩種連線模式：
+ * <ul>
+ *   <li>{@code redis://} — Standalone 直連模式</li>
+ *   <li>{@code redis-sentinel://} — Sentinel 高可用模式</li>
+ * </ul>
+ *
+ * <p>所有 Bean 均標注 {@link org.springframework.boot.autoconfigure.condition.ConditionalOnMissingBean}，
+ * 可由使用者定義同型別的 Bean 覆寫預設行為。
+ */
 @AutoConfiguration
 @EnableConfigurationProperties(KnoluxRedisProperties.class)
 public class KnoluxRedisAutoConfiguration {
@@ -26,6 +45,15 @@ public class KnoluxRedisAutoConfiguration {
         this.properties = properties;
     }
 
+    /**
+     * 建立 {@link org.springframework.data.redis.connection.lettuce.LettuceConnectionFactory}。
+     *
+     * <p>根據 {@code knolux.redis.url} 的 scheme 判斷模式：
+     * {@code redis://} 使用 Standalone，{@code redis-sentinel://} 使用 Sentinel。
+     *
+     * @return 設定好的 {@link org.springframework.data.redis.connection.lettuce.LettuceConnectionFactory}
+     * @throws IllegalArgumentException 若 {@code knolux.redis.url} 未設定或為空
+     */
     @Bean
     @ConditionalOnMissingBean(RedisConnectionFactory.class)
     public LettuceConnectionFactory redisConnectionFactory() {
@@ -50,6 +78,12 @@ public class KnoluxRedisAutoConfiguration {
     // Templates
     // ─────────────────────────────────────────────
 
+    /**
+     * 建立 {@link org.springframework.data.redis.core.StringRedisTemplate}，適用於純字串型 key/value 操作。
+     *
+     * @param factory Redis 連線工廠
+     * @return 設定好的 {@link org.springframework.data.redis.core.StringRedisTemplate}
+     */
     @Bean
     @ConditionalOnMissingBean(StringRedisTemplate.class)
     public StringRedisTemplate stringRedisTemplate(
@@ -57,6 +91,12 @@ public class KnoluxRedisAutoConfiguration {
         return new StringRedisTemplate(factory);
     }
 
+    /**
+     * 建立通用 {@link org.springframework.data.redis.core.RedisTemplate}，key 與 hash key 使用 {@link org.springframework.data.redis.serializer.StringRedisSerializer}。
+     *
+     * @param factory Redis 連線工廠
+     * @return 設定好的 {@link org.springframework.data.redis.core.RedisTemplate}
+     */
     @Bean
     @ConditionalOnMissingBean(name = "redisTemplate")
     public RedisTemplate<String, Object> redisTemplate(
