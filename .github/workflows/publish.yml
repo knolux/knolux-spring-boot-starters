@@ -3,7 +3,7 @@ name: Publish
 on:
   push:
     tags:
-      - '*/v*'    # e.g. knolux-redis/v1.0.1
+      - '*/v*'    # e.g. knolux-redis-spring-boot-starter/v1.0.1
 
 jobs:
   test-and-publish:
