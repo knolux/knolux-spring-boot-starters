@@ -7,7 +7,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 `knolux-starters` is a Gradle multi-module monorepo publishing Spring Boot auto-configuration starters to GitHub Packages. The root project is an aggregator only — it publishes no artifact. Each submodule is an independently versioned starter.
 
 Current modules:
-- `:knolux-redis` — Redis starter supporting Standalone (`redis://`) and Sentinel (`redis-sentinel://`) modes
+- `:knolux-redis-spring-boot-starter` — Redis starter supporting Standalone (`redis://`) and Sentinel (`redis-sentinel://`) modes
 
 ## Commands
 
@@ -16,19 +16,19 @@ Current modules:
 ./gradlew test
 
 # Run tests for a specific module
-./gradlew :knolux-redis:test
+./gradlew :knolux-redis-spring-boot-starter:test
 
 # Run a single test class
-./gradlew :knolux-redis:test --tests "com.knolux.redis.KnoluxRedisAutoConfigurationTest"
+./gradlew :knolux-redis-spring-boot-starter:test --tests "com.knolux.redis.KnoluxRedisAutoConfigurationTest"
 
 # Run a single test method
-./gradlew :knolux-redis:test --tests "com.knolux.redis.KnoluxRedisAutoConfigurationTest.standalone_shouldCreateAllBeans"
+./gradlew :knolux-redis-spring-boot-starter:test --tests "com.knolux.redis.KnoluxRedisAutoConfigurationTest.standalone_shouldCreateAllBeans"
 
 # Build everything
 ./gradlew build
 
 # Publish a module (CI does this; requires GITHUB_TOKEN + GITHUB_ACTOR)
-./gradlew :knolux-redis:publish -Pversion=1.0.1
+./gradlew :knolux-redis-spring-boot-starter:publish -Pversion=1.0.1
 ```
 
 Test reports: `<module>/build/reports/tests/test/`
@@ -52,8 +52,8 @@ Test reports: `<module>/build/reports/tests/test/`
 
 Artifacts publish to GitHub Packages on module-scoped git tags:
 ```bash
-git tag knolux-redis/v1.0.1
-git push origin knolux-redis/v1.0.1
+git tag knolux-redis-spring-boot-starter/v1.0.1
+git push origin knolux-redis-spring-boot-starter/v1.0.1
 ```
 Only the tagged module is tested and published. Other modules are not affected.
 
@@ -65,7 +65,7 @@ Only the tagged module is tested and published. Other modules are not affected.
 - `gradle/libs.versions.toml` — version catalog; auto-detected by Gradle as `libs`
 - `settings.gradle.kts` — root name + `include()` for each module
 
-### :knolux-redis
+### :knolux-redis-spring-boot-starter
 
 Spring Boot auto-configuration starter for Redis. Core files:
 
