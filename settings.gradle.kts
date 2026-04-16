@@ -1,3 +1,3 @@
-rootProject.name = "knolux-starters"
+rootProject.name = "knolux-spring-boot-starters"
 
-include(":knolux-redis")
+include(":knolux-redis-spring-boot-starter")
