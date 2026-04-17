@@ -2,7 +2,7 @@ description = "Redis Starter for Spring Boot, supports Sentinel and Standalone"
 
 dependencies {
     implementation(libs.spring.boot.autoconfigure)
-    implementation(libs.spring.boot.starter.data.redis)
+    api(libs.spring.boot.starter.data.redis)
     compileOnly(libs.spring.boot.starter.actuator)
     annotationProcessor(libs.spring.boot.configuration.processor)
 
