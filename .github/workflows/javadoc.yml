@@ -1,0 +1,94 @@
+name: Publish Javadoc
+
+on:
+  push:
+    tags:
+      - '*/v*'    # e.g. knolux-redis-spring-boot-starter/v1.0.1
+
+permissions:
+  contents: write
+
+env:
+  FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
+
+jobs:
+  build-and-deploy:
+    name: Build & Deploy Javadoc
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-java@v4
+        with:
+          java-version: 25
+          distribution: temurin
+
+      - uses: gradle/actions/setup-gradle@v4
+
+      - name: Extract module from tag
+        id: meta
+        run: |
+          TAG=${GITHUB_REF_NAME}          # knolux-redis-spring-boot-starter/v1.0.1
+          MODULE=${TAG%/v*}               # knolux-redis-spring-boot-starter
+          echo "module=$MODULE" >> $GITHUB_OUTPUT
+
+      - name: Generate Javadoc
+        run: ./gradlew :${{ steps.meta.outputs.module }}:javadoc
+
+      - name: Discover existing modules from gh-pages
+        id: discover
+        env:
+          MODULE: ${{ steps.meta.outputs.module }}
+        run: |
+          git fetch origin gh-pages 2>/dev/null || true
+          existing=$(git ls-tree --name-only origin/gh-pages 2>/dev/null \
+            | grep -v '^\.' | grep -v 'index.html' || true)
+          all_modules=$(printf '%s\n%s\n' "$existing" "$MODULE" | sort -u | grep -v '^$')
+          echo "modules<<EOF" >> $GITHUB_OUTPUT
+          echo "$all_modules" >> $GITHUB_OUTPUT
+          echo "EOF" >> $GITHUB_OUTPUT
+
+      - name: Build site directory
+        env:
+          MODULE: ${{ steps.meta.outputs.module }}
+          MODULES: ${{ steps.discover.outputs.modules }}
+        run: |
+          mkdir -p /tmp/site
+
+          cp -r "$MODULE/build/docs/javadoc" "/tmp/site/$MODULE"
+
+          {
+            echo '<!DOCTYPE html>'
+            echo '<html lang="zh-TW">'
+            echo '<head>'
+            echo '  <meta charset="UTF-8">'
+            echo '  <meta name="viewport" content="width=device-width, initial-scale=1">'
+            echo '  <title>Knolux Spring Boot Starters — API 文件</title>'
+            echo '  <style>'
+            echo '    body { font-family: sans-serif; max-width: 800px; margin: 2rem auto; padding: 0 1rem; color: #333; }'
+            echo '    h1 { border-bottom: 2px solid #eee; padding-bottom: 0.5rem; }'
+            echo '    ul { list-style: none; padding: 0; }'
+            echo '    li { margin: 0.75rem 0; }'
+            echo '    a { color: #0066cc; text-decoration: none; font-size: 1.05rem; }'
+            echo '    a:hover { text-decoration: underline; }'
+            echo '  </style>'
+            echo '</head>'
+            echo '<body>'
+            echo '  <h1>Knolux Spring Boot Starters</h1>'
+            echo '  <p>選擇模組以檢視 API 文件：</p>'
+            echo '  <ul>'
+            while IFS= read -r mod; do
+              [ -n "$mod" ] && echo "    <li><a href=\"$mod/\">$mod</a></li>"
+            done <<< "$MODULES"
+            echo '  </ul>'
+            echo '</body>'
+            echo '</html>'
+          } > /tmp/site/index.html
+
+      - name: Deploy to gh-pages
+        uses: JamesIves/github-pages-deploy-action@v4
+        with:
+          branch: gh-pages
+          folder: /tmp/site
+          clean: false
