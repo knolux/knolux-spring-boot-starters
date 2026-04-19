@@ -30,10 +30,10 @@ jobs:
       - name: Extract module and version from tag
         id: meta
         run: |
-          TAG=${GITHUB_REF_NAME}          # knolux-redis-spring-boot-starter/v1.0.1
-          MODULE=${TAG%/v*}               # knolux-redis-spring-boot-starter
-          VERSION=${TAG#*/v}              # 1.0.1
-          echo "module=$MODULE" >> $GITHUB_OUTPUT
+          TAG=${GITHUB_REF_NAME}
+          MODULE=${TAG%/v*}
+          VERSION=${TAG#*/v}
+          echo "module=$MODULE" >> $GITHUB_OUTPUT`
           echo "version=$VERSION" >> $GITHUB_OUTPUT
 
       - name: Run module tests
