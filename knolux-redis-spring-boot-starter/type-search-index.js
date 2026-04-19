@@ -1,0 +1,1 @@
+typeSearchIndex = [{"l":"All Classes and Interfaces","u":"allclasses-index.html","k":"18"},{"p":"com.knolux.redis","l":"KnoluxRedisAutoConfiguration"},{"p":"com.knolux.redis","l":"KnoluxRedisHealthIndicator"},{"p":"com.knolux.redis","l":"KnoluxRedisProperties"}];updateSearchResults();
