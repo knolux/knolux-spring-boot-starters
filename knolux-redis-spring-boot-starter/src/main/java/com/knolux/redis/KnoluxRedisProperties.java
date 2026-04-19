@@ -1,5 +1,7 @@
 package com.knolux.redis;
 
+import lombok.Getter;
+import lombok.Setter;
 import org.springframework.boot.context.properties.ConfigurationProperties;
 
 import java.time.Duration;
@@ -39,6 +41,8 @@ import java.time.Duration;
  *
  * @see KnoluxRedisAutoConfiguration
  */
+@Getter
+@Setter
 @ConfigurationProperties(prefix = "knolux.redis")
 public class KnoluxRedisProperties {
 
@@ -106,28 +110,4 @@ public class KnoluxRedisProperties {
      * Lettuce 不會啟動 topology refresh，可減少背景連線開銷。
      */
     private String readFrom = "REPLICA_PREFERRED";
-
-    public String getUrl() {
-        return url;
-    }
-
-    public void setUrl(String url) {
-        this.url = url;
-    }
-
-    public Duration getTimeoutMs() {
-        return timeoutMs;
-    }
-
-    public void setTimeoutMs(Duration timeoutMs) {
-        this.timeoutMs = timeoutMs;
-    }
-
-    public String getReadFrom() {
-        return readFrom;
-    }
-
-    public void setReadFrom(String readFrom) {
-        this.readFrom = readFrom;
-    }
 }

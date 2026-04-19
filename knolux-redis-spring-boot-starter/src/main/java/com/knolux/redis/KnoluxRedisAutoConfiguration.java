@@ -173,7 +173,7 @@ public class KnoluxRedisAutoConfiguration {
      */
     private LettuceConnectionFactory buildSentinelFactory(URI uri) {
         String masterName = uri.getPath().replaceFirst("^/", "");
-        String password = parsePassword(uri);
+        String password = RedisUriUtils.parsePassword(uri);
         String host = uri.getHost();
         int port = uri.getPort() > 0 ? uri.getPort() : 26379;
 
@@ -187,7 +187,7 @@ public class KnoluxRedisAutoConfiguration {
         }
 
         // Sentinel 模式永遠需要 readFrom（REPLICA_PREFERRED 為預設）
-        ReadFrom rf = parseReadFrom(properties.getReadFrom());
+        ReadFrom rf = RedisUriUtils.parseReadFrom(properties.getReadFrom());
         LettuceClientConfiguration clientConfig = LettuceClientConfiguration.builder()
                 .commandTimeout(properties.getTimeoutMs())
                 .readFrom(rf)
@@ -220,10 +220,10 @@ public class KnoluxRedisAutoConfiguration {
      * @return 設定完成的 Standalone 模式 {@link LettuceConnectionFactory}
      */
     private LettuceConnectionFactory buildStandaloneFactory(URI uri) {
-        String password = parsePassword(uri);
+        String password = RedisUriUtils.parsePassword(uri);
         String host = uri.getHost();
         int port = uri.getPort() > 0 ? uri.getPort() : 6379;
-        int db = parseDb(uri.getPath());
+        int db = RedisUriUtils.parseDb(uri.getPath());
 
         RedisStandaloneConfiguration config = new RedisStandaloneConfiguration(host, port);
         config.setDatabase(db);
@@ -232,54 +232,16 @@ public class KnoluxRedisAutoConfiguration {
         }
 
         String readFrom = properties.getReadFrom();
-        if ("MASTER".equalsIgnoreCase(readFrom)) {
-            // 純 Standalone：不設定 readFrom，Lettuce 不會啟動 topology refresh
-            LettuceClientConfiguration clientConfig = LettuceClientConfiguration.builder()
-                    .commandTimeout(properties.getTimeoutMs())
-                    .build();
-            return new LettuceConnectionFactory(config, clientConfig);
+        var builder = LettuceClientConfiguration.builder()
+                .commandTimeout(properties.getTimeoutMs());
+
+        // 純 Standalone（MASTER）時不設定 readFrom，Lettuce 不會啟動 topology refresh；
+        // 其他策略（REPLICA_PREFERRED / REPLICA / ANY）啟用讀寫分離
+        if (!"MASTER".equalsIgnoreCase(readFrom)) {
+            builder.readFrom(RedisUriUtils.parseReadFrom(readFrom));
         }
 
-        // REPLICA_PREFERRED / REPLICA / ANY：啟用 topology refresh 支援讀寫分離
-        LettuceClientConfiguration clientConfig = LettuceClientConfiguration.builder()
-                .commandTimeout(properties.getTimeoutMs())
-                .readFrom(parseReadFrom(readFrom))
-                .build();
-        return new LettuceConnectionFactory(config, clientConfig);
+        return new LettuceConnectionFactory(config, builder.build());
     }
 
-    /**
-     * 將策略字串（不區分大小寫）轉換為 {@link ReadFrom}；未知值回傳 {@link ReadFrom#REPLICA_PREFERRED}。
-     */
-    private ReadFrom parseReadFrom(String readFrom) {
-        return switch (readFrom.toUpperCase()) {
-            case "REPLICA" -> ReadFrom.REPLICA;
-            case "ANY" -> ReadFrom.ANY;
-            case "MASTER" -> ReadFrom.MASTER;
-            default -> ReadFrom.REPLICA_PREFERRED;
-        };
-    }
-
-    /**
-     * 從 URI 的 userInfo（格式 {@code [:username]:password}）解析密碼。
-     * 無 userInfo 或無 {@code :} 分隔符時回傳 {@code null}。
-     */
-    private String parsePassword(URI uri) {
-        if (uri.getUserInfo() == null) return null;
-        String[] parts = uri.getUserInfo().split(":", 2);
-        return parts.length == 2 ? parts[1] : null;
-    }
-
-    /**
-     * 從 URI path（如 {@code /3}）解析 Redis 資料庫編號；
-     * path 為空或非數字時回傳 {@code 0}。
-     */
-    private int parseDb(String path) {
-        if (path == null || path.isBlank() || "/".equals(path)) return 0;
-        try {
-            return Integer.parseInt(path.replaceFirst("^/", ""));
-        } catch (NumberFormatException e) {
-            return 0;
-        }
-    }
 }

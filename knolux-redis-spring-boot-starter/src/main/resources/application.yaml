@@ -1,3 +1,3 @@
 spring:
   application:
-    name: spring-redis-starter
+    name: knolux-redis-spring-boot-starter

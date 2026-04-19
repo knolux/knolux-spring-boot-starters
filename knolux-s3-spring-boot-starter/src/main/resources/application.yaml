@@ -1,0 +1,3 @@
+spring:
+  application:
+    name: knolux-s3-spring-boot-starter

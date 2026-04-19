@@ -2,6 +2,7 @@ package com.knolux.redis;
 
 import com.redis.testcontainers.RedisContainer;
 import org.junit.jupiter.api.AfterAll;
+import org.junit.jupiter.api.Assumptions;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -10,6 +11,7 @@ import org.springframework.boot.health.contributor.Status;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.test.context.DynamicPropertyRegistry;
 import org.springframework.test.context.DynamicPropertySource;
+import org.testcontainers.DockerClientFactory;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
@@ -31,7 +33,7 @@ import static org.assertj.core.api.Assertions.assertThat;
  * </ul>
  *
  * <h2>前提條件</h2>
- * <p>執行此測試需要本機環境安裝 Docker 並處於執行狀態。
+ * <p>執行此測試需要本機環境安裝 Docker 並處於執行狀態。Docker 不可用時自動跳過。
  *
  * @see KnoluxRedisHealthIndicator
  * @see KnoluxRedisHealthIndicatorTest 單元測試（使用 Mock，無需 Docker）
@@ -67,9 +69,15 @@ class KnoluxRedisHealthIndicatorIntegrationTest {
      *
      * <p>Testcontainers 會自動尋找可用的本機 Docker 環境並啟動容器，
      * 同時綁定容器內的 6379 埠至本機的隨機可用埠。
+     * Docker 不可用時跳過整個測試類別。
      */
     @BeforeAll
     static void startContainer() {
+        try {
+            DockerClientFactory.instance().client();
+        } catch (Exception e) {
+            Assumptions.abort("Docker 不可用，跳過整合測試：" + e.getMessage());
+        }
         REDIS.start();
     }
 

@@ -3,8 +3,10 @@ package com.knolux.redis;
 import com.redis.testcontainers.RedisContainer;
 import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.Assumptions;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
+import org.testcontainers.DockerClientFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.data.redis.connection.lettuce.LettuceConnectionFactory;
@@ -76,6 +78,11 @@ class KnoluxRedisSentinelIntegrationTest {
      */
     @BeforeAll
     static void startContainer() {
+        try {
+            DockerClientFactory.instance().client();
+        } catch (Exception e) {
+            Assumptions.abort("Docker 不可用，跳過整合測試：" + e.getMessage());
+        }
         REDIS.start();
     }
 

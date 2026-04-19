@@ -1,8 +1,10 @@
-description = "Redis Starter for Spring Boot, supports Sentinel and Standalone"
+description = "S3 Starter for Spring Boot, supports Path Style (SeaweedFS / MinIO compatible)"
 
 dependencies {
+    implementation(platform(libs.awssdk.bom))
     implementation(libs.spring.boot.autoconfigure)
-    api(libs.spring.boot.starter.data.redis)
+    implementation(libs.awssdk.s3)
+    implementation(libs.awssdk.netty.nio.client)
     compileOnly(libs.spring.boot.starter.actuator)
     compileOnly(libs.lombok)
     annotationProcessor(libs.spring.boot.configuration.processor)
@@ -10,7 +12,7 @@ dependencies {
 
     testImplementation(libs.spring.boot.starter.test)
     testImplementation(libs.spring.boot.starter.actuator)
-    testImplementation(libs.spring.boot.testcontainers)
-    testImplementation(libs.testcontainers.redis)
+    testImplementation(libs.testcontainers)
+    testImplementation(libs.testcontainers.junit)
     testRuntimeOnly(libs.junit.platform.launcher)
 }
