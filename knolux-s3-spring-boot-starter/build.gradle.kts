@@ -3,7 +3,7 @@ description = "S3 Starter for Spring Boot, supports Path Style (SeaweedFS / MinI
 dependencies {
     implementation(platform(libs.awssdk.bom))
     implementation(libs.spring.boot.autoconfigure)
-    implementation(libs.awssdk.s3)
+    api(libs.awssdk.s3)
     implementation(libs.awssdk.netty.nio.client)
     compileOnly(libs.spring.boot.starter.actuator)
     compileOnly(libs.lombok)
