@@ -49,7 +49,7 @@ loadScripts(document, 'script');</script>
 <div class="header">
 <h1>Index</h1>
 </div>
-<a href="#I:A">A</a>&nbsp;<a href="#I:C">C</a>&nbsp;<a href="#I:D">D</a>&nbsp;<a href="#I:E">E</a>&nbsp;<a href="#I:F">F</a>&nbsp;<a href="#I:G">G</a>&nbsp;<a href="#I:H">H</a>&nbsp;<a href="#I:K">K</a>&nbsp;<a href="#I:M">M</a>&nbsp;<a href="#I:N">N</a>&nbsp;<a href="#I:O">O</a>&nbsp;<a href="#I:P">P</a>&nbsp;<a href="#I:R">R</a>&nbsp;<a href="#I:S">S</a>&nbsp;<a href="#I:T">T</a>&nbsp;<a href="#I:U">U</a>&nbsp;<a href="#I:%E5%8B%95">動</a>&nbsp;<a href="#I:%E5%95%8F">問</a>&nbsp;<a href="#I:%E5%BF%AB">快</a>&nbsp;<a href="#I:%E6%94%AF">支</a>&nbsp;<a href="#I:%E6%A8%99">標</a>&nbsp;<a href="#I:%E6%AC%84">欄</a>&nbsp;<a href="#I:%E7%94%9F">生</a>&nbsp;<a href="#I:%E8%87%AA">自</a>&nbsp;<a href="#I:%E8%A7%A3">解</a>&nbsp;<a href="#I:%E9%80%B2">進</a>&nbsp;<a href="#I:%E9%97%9C">關</a>&nbsp;<a href="#I:%E9%9D%9C">靜</a>&nbsp;<br><a href="allclasses-index.html">All&nbsp;Classes&nbsp;and&nbsp;Interfaces</a><span class="vertical-separator">|</span><a href="allpackages-index.html">All&nbsp;Packages</a>
+<a href="#I:A">A</a>&nbsp;<a href="#I:B">B</a>&nbsp;<a href="#I:C">C</a>&nbsp;<a href="#I:D">D</a>&nbsp;<a href="#I:E">E</a>&nbsp;<a href="#I:F">F</a>&nbsp;<a href="#I:G">G</a>&nbsp;<a href="#I:H">H</a>&nbsp;<a href="#I:K">K</a>&nbsp;<a href="#I:M">M</a>&nbsp;<a href="#I:N">N</a>&nbsp;<a href="#I:O">O</a>&nbsp;<a href="#I:P">P</a>&nbsp;<a href="#I:R">R</a>&nbsp;<a href="#I:S">S</a>&nbsp;<a href="#I:T">T</a>&nbsp;<a href="#I:U">U</a>&nbsp;<a href="#I:V">V</a>&nbsp;<a href="#I:%E4%B8%89">三</a>&nbsp;<a href="#I:%E5%8B%95">動</a>&nbsp;<a href="#I:%E5%95%8F">問</a>&nbsp;<a href="#I:%E5%BF%AB">快</a>&nbsp;<a href="#I:%E6%94%AF">支</a>&nbsp;<a href="#I:%E6%A0%B8">核</a>&nbsp;<a href="#I:%E6%A8%99">標</a>&nbsp;<a href="#I:%E6%A8%A1">模</a>&nbsp;<a href="#I:%E6%AC%84">欄</a>&nbsp;<a href="#I:%E7%94%9F">生</a>&nbsp;<a href="#I:%E8%87%AA">自</a>&nbsp;<a href="#I:%E8%A7%A3">解</a>&nbsp;<a href="#I:%E9%80%B2">進</a>&nbsp;<a href="#I:%E9%97%9C">關</a>&nbsp;<a href="#I:%E9%9D%9C">靜</a>&nbsp;<br><a href="allclasses-index.html">All&nbsp;Classes&nbsp;and&nbsp;Interfaces</a><span class="vertical-separator">|</span><a href="allpackages-index.html">All&nbsp;Packages</a>
 <h2 class="title" id="I:A">A</h2>
 <dl class="index">
 <dt><a href="com/knolux/s3/KnoluxS3ConnectionDetails.html#accessKey()" class="member-name-link">accessKey()</a> - Method in record class com.knolux.s3.<a href="com/knolux/s3/KnoluxS3ConnectionDetails.html" title="class in com.knolux.s3">KnoluxS3ConnectionDetails</a></dt>
@@ -57,14 +57,25 @@ loadScripts(document, 'script');</script>
 <div class="block">Returns the value of the <code>accessKey</code> record component.</div>
 </dd>
 </dl>
+<h2 class="title" id="I:B">B</h2>
+<dl class="index">
+<dt><a href="com/knolux/s3/package-summary.html#bean--heading" class="search-tag-link">Bean 依賴關係</a> - Section in package com.knolux.s3</dt>
+<dd>&nbsp;</dd>
+</dl>
 <h2 class="title" id="I:C">C</h2>
 <dl class="index">
 <dt><a href="com/knolux/s3/KnoluxS3ClientFactory.html#close()" class="member-name-link">close()</a> - Method in class com.knolux.s3.<a href="com/knolux/s3/KnoluxS3ClientFactory.html" title="class in com.knolux.s3">KnoluxS3ClientFactory</a></dt>
 <dd>
 <div class="block">關閉所有快取的 <code>S3AsyncClient</code> 與 Netty HTTP client，釋放執行緒資源。</div>
 </dd>
+<dt><a href="com/knolux/s3/S3ClientProvider.html#close()" class="member-name-link">close()</a> - Method in interface com.knolux.s3.<a href="com/knolux/s3/S3ClientProvider.html" title="interface in com.knolux.s3">S3ClientProvider</a></dt>
+<dd>
+<div class="block">釋放所有 client 資源。</div>
+</dd>
 <dt><a href="com/knolux/s3/package-summary.html">com.knolux.s3</a> - package com.knolux.s3</dt>
-<dd>&nbsp;</dd>
+<dd>
+<div class="block">Knolux S3 Spring Boot Starter 核心套件。</div>
+</dd>
 </dl>
 <h2 class="title" id="I:D">D</h2>
 <dl class="index">
@@ -105,7 +116,15 @@ loadScripts(document, 'script');</script>
 <dd>
 <div class="block">使用預設連線取得 <code>S3AsyncClient</code>（靜態模式捷徑）。</div>
 </dd>
+<dt><a href="com/knolux/s3/S3ClientProvider.html#getClient()" class="member-name-link">getClient()</a> - Method in interface com.knolux.s3.<a href="com/knolux/s3/S3ClientProvider.html" title="interface in com.knolux.s3">S3ClientProvider</a></dt>
+<dd>
+<div class="block">使用預設連線取得 <code>S3AsyncClient</code>（靜態模式捷徑）。</div>
+</dd>
 <dt><a href="com/knolux/s3/KnoluxS3ClientFactory.html#getClient(com.knolux.s3.KnoluxS3ConnectionDetails)" class="member-name-link">getClient(KnoluxS3ConnectionDetails)</a> - Method in class com.knolux.s3.<a href="com/knolux/s3/KnoluxS3ClientFactory.html" title="class in com.knolux.s3">KnoluxS3ClientFactory</a></dt>
+<dd>
+<div class="block">取得與指定連線參數對應的 <code>S3AsyncClient</code>。</div>
+</dd>
+<dt><a href="com/knolux/s3/S3ClientProvider.html#getClient(com.knolux.s3.KnoluxS3ConnectionDetails)" class="member-name-link">getClient(KnoluxS3ConnectionDetails)</a> - Method in interface com.knolux.s3.<a href="com/knolux/s3/S3ClientProvider.html" title="interface in com.knolux.s3">S3ClientProvider</a></dt>
 <dd>
 <div class="block">取得與指定連線參數對應的 <code>S3AsyncClient</code>。</div>
 </dd>
@@ -147,6 +166,10 @@ loadScripts(document, 'script');</script>
 <dd>
 <div class="block">Creates an instance of a <code>KnoluxS3ConnectionDetails</code> record class.</div>
 </dd>
+<dt><a href="com/knolux/s3/KnoluxS3AutoConfiguration.html#knoluxS3Executor(org.springframework.core.env.Environment)" class="member-name-link">knoluxS3Executor(Environment)</a> - Method in class com.knolux.s3.<a href="com/knolux/s3/KnoluxS3AutoConfiguration.html" title="class in com.knolux.s3">KnoluxS3AutoConfiguration</a></dt>
+<dd>
+<div class="block">供 <a href="com/knolux/s3/KnoluxS3Template.html" title="class in com.knolux.s3"><code>KnoluxS3Template</code></a> 執行 CompletableFuture 回呼的 Executor。</div>
+</dd>
 <dt><a href="com/knolux/s3/KnoluxS3OperationSpec.html" class="type-name-link" title="class in com.knolux.s3">KnoluxS3OperationSpec</a> - Class in <a href="com/knolux/s3/package-summary.html">com.knolux.s3</a></dt>
 <dd>
 <div class="block">動態 S3 操作規格，用於執行期間從請求 Payload 組裝完整的 S3 操作參數。</div>
@@ -159,14 +182,20 @@ loadScripts(document, 'script');</script>
 </dd>
 <dt><a href="com/knolux/s3/KnoluxS3Properties.html#%3Cinit%3E()" class="member-name-link">KnoluxS3Properties()</a> - Constructor for class com.knolux.s3.<a href="com/knolux/s3/KnoluxS3Properties.html" title="class in com.knolux.s3">KnoluxS3Properties</a></dt>
 <dd>&nbsp;</dd>
-<dt><a href="com/knolux/s3/KnoluxS3AutoConfiguration.html#knoluxS3Template(com.knolux.s3.KnoluxS3ClientFactory)" class="member-name-link">knoluxS3Template(KnoluxS3ClientFactory)</a> - Method in class com.knolux.s3.<a href="com/knolux/s3/KnoluxS3AutoConfiguration.html" title="class in com.knolux.s3">KnoluxS3AutoConfiguration</a></dt>
+<dt><a href="com/knolux/s3/KnoluxS3AutoConfiguration.html#knoluxS3Template(com.knolux.s3.S3ClientProvider,java.util.concurrent.Executor)" class="member-name-link">knoluxS3Template(S3ClientProvider, Executor)</a> - Method in class com.knolux.s3.<a href="com/knolux/s3/KnoluxS3AutoConfiguration.html" title="class in com.knolux.s3">KnoluxS3AutoConfiguration</a></dt>
 <dd>&nbsp;</dd>
 <dt><a href="com/knolux/s3/KnoluxS3Template.html" class="type-name-link" title="class in com.knolux.s3">KnoluxS3Template</a> - Class in <a href="com/knolux/s3/package-summary.html">com.knolux.s3</a></dt>
 <dd>
 <div class="block">S3 非同步操作模板，封裝 Upload、Download、Delete。</div>
 </dd>
-<dt><a href="com/knolux/s3/KnoluxS3Template.html#%3Cinit%3E()" class="member-name-link">KnoluxS3Template()</a> - Constructor for class com.knolux.s3.<a href="com/knolux/s3/KnoluxS3Template.html" title="class in com.knolux.s3">KnoluxS3Template</a></dt>
-<dd>&nbsp;</dd>
+<dt><a href="com/knolux/s3/KnoluxS3Template.html#%3Cinit%3E(com.knolux.s3.S3ClientProvider)" class="member-name-link">KnoluxS3Template(S3ClientProvider)</a> - Constructor for class com.knolux.s3.<a href="com/knolux/s3/KnoluxS3Template.html" title="class in com.knolux.s3">KnoluxS3Template</a></dt>
+<dd>
+<div class="block">向下兼容建構子，使用 <a href="https://docs.oracle.com/en/java/javase/25/docs/api/java.base/java/util/concurrent/ForkJoinPool.html#commonPool()" title="class or interface in java.util.concurrent" class="external-link"><code>ForkJoinPool.commonPool()</code></a> 作為預設 executor。</div>
+</dd>
+<dt><a href="com/knolux/s3/KnoluxS3Template.html#%3Cinit%3E(com.knolux.s3.S3ClientProvider,java.util.concurrent.Executor)" class="member-name-link">KnoluxS3Template(S3ClientProvider, Executor)</a> - Constructor for class com.knolux.s3.<a href="com/knolux/s3/KnoluxS3Template.html" title="class in com.knolux.s3">KnoluxS3Template</a></dt>
+<dd>
+<div class="block">完整建構子。</div>
+</dd>
 </dl>
 <h2 class="title" id="I:M">M</h2>
 <dl class="index">
@@ -211,6 +240,10 @@ loadScripts(document, 'script');</script>
 </dl>
 <h2 class="title" id="I:S">S</h2>
 <dl class="index">
+<dt><a href="com/knolux/s3/S3ClientProvider.html" class="type-name-link" title="interface in com.knolux.s3">S3ClientProvider</a> - Interface in <a href="com/knolux/s3/package-summary.html">com.knolux.s3</a></dt>
+<dd>
+<div class="block"><code>S3AsyncClient</code> 提供者抽象介面，供 <a href="com/knolux/s3/KnoluxS3Template.html" title="class in com.knolux.s3"><code>KnoluxS3Template</code></a> 依賴。</div>
+</dd>
 <dt><a href="com/knolux/s3/KnoluxS3Properties.html#seaweedfs-k8s--heading" class="search-tag-link">SeaweedFS 直連（K8s 內部）</a> - Section in class com.knolux.s3.KnoluxS3Properties</dt>
 <dd>&nbsp;</dd>
 <dt><a href="com/knolux/s3/KnoluxS3ConnectionDetails.html#secretKey()" class="member-name-link">secretKey()</a> - Method in record class com.knolux.s3.<a href="com/knolux/s3/KnoluxS3ConnectionDetails.html" title="class in com.knolux.s3">KnoluxS3ConnectionDetails</a></dt>
@@ -246,6 +279,16 @@ loadScripts(document, 'script');</script>
 <dt><a href="com/knolux/s3/KnoluxS3Template.html#upload(java.lang.String,java.lang.String,software.amazon.awssdk.core.async.AsyncRequestBody,com.knolux.s3.KnoluxS3ConnectionDetails)" class="member-name-link">upload(String, String, AsyncRequestBody, KnoluxS3ConnectionDetails)</a> - Method in class com.knolux.s3.<a href="com/knolux/s3/KnoluxS3Template.html" title="class in com.knolux.s3">KnoluxS3Template</a></dt>
 <dd>&nbsp;</dd>
 </dl>
+<h2 class="title" id="I:V">V</h2>
+<dl class="index">
+<dt><a href="com/knolux/s3/package-summary.html#virtual-thread--heading" class="search-tag-link">Virtual Thread 支援</a> - Section in package com.knolux.s3</dt>
+<dd>&nbsp;</dd>
+</dl>
+<h2 class="title" id="I:三">三</h2>
+<dl class="index">
+<dt><a href="com/knolux/s3/package-summary.html#-api--heading" class="search-tag-link">三層 API 範例</a> - Section in package com.knolux.s3</dt>
+<dd>&nbsp;</dd>
+</dl>
 <h2 class="title" id="I:動">動</h2>
 <dl class="index">
 <dt><a href="com/knolux/s3/KnoluxS3Template.html#-dynamic--heading" class="search-tag-link">動態模式（Dynamic）</a> - Section in class com.knolux.s3.KnoluxS3Template</dt>
@@ -262,15 +305,27 @@ loadScripts(document, 'script');</script>
 <dd>&nbsp;</dd>
 <dt><a href="com/knolux/s3/KnoluxS3ConnectionDetails.html#--heading" class="search-tag-link">快取鍵安全性</a> - Section in record class com.knolux.s3.KnoluxS3ConnectionDetails</dt>
 <dd>&nbsp;</dd>
+<dt><a href="com/knolux/s3/package-summary.html#--heading2" class="search-tag-link">快速開始</a> - Section in package com.knolux.s3</dt>
+<dd>&nbsp;</dd>
 </dl>
 <h2 class="title" id="I:支">支</h2>
 <dl class="index">
 <dt><a href="com/knolux/s3/KnoluxS3ClientFactory.html#--heading1" class="search-tag-link">支援情境</a> - Section in class com.knolux.s3.KnoluxS3ClientFactory</dt>
 <dd>&nbsp;</dd>
 </dl>
+<h2 class="title" id="I:核">核</h2>
+<dl class="index">
+<dt><a href="com/knolux/s3/package-summary.html#--heading1" class="search-tag-link">核心類別</a> - Section in package com.knolux.s3</dt>
+<dd>&nbsp;</dd>
+</dl>
 <h2 class="title" id="I:標">標</h2>
 <dl class="index">
 <dt><a href="com/knolux/s3/KnoluxS3Properties.html#-aws-s3-heading" class="search-tag-link">標準 AWS S3</a> - Section in class com.knolux.s3.KnoluxS3Properties</dt>
+<dd>&nbsp;</dd>
+</dl>
+<h2 class="title" id="I:模">模</h2>
+<dl class="index">
+<dt><a href="com/knolux/s3/package-summary.html#--heading" class="search-tag-link">模組概覽</a> - Section in package com.knolux.s3</dt>
 <dd>&nbsp;</dd>
 </dl>
 <h2 class="title" id="I:欄">欄</h2>
@@ -310,7 +365,7 @@ loadScripts(document, 'script');</script>
 <dt><a href="com/knolux/s3/KnoluxS3Template.html#-static--heading" class="search-tag-link">靜態模式（Static）</a> - Section in class com.knolux.s3.KnoluxS3Template</dt>
 <dd>&nbsp;</dd>
 </dl>
-<a href="#I:A">A</a>&nbsp;<a href="#I:C">C</a>&nbsp;<a href="#I:D">D</a>&nbsp;<a href="#I:E">E</a>&nbsp;<a href="#I:F">F</a>&nbsp;<a href="#I:G">G</a>&nbsp;<a href="#I:H">H</a>&nbsp;<a href="#I:K">K</a>&nbsp;<a href="#I:M">M</a>&nbsp;<a href="#I:N">N</a>&nbsp;<a href="#I:O">O</a>&nbsp;<a href="#I:P">P</a>&nbsp;<a href="#I:R">R</a>&nbsp;<a href="#I:S">S</a>&nbsp;<a href="#I:T">T</a>&nbsp;<a href="#I:U">U</a>&nbsp;<a href="#I:%E5%8B%95">動</a>&nbsp;<a href="#I:%E5%95%8F">問</a>&nbsp;<a href="#I:%E5%BF%AB">快</a>&nbsp;<a href="#I:%E6%94%AF">支</a>&nbsp;<a href="#I:%E6%A8%99">標</a>&nbsp;<a href="#I:%E6%AC%84">欄</a>&nbsp;<a href="#I:%E7%94%9F">生</a>&nbsp;<a href="#I:%E8%87%AA">自</a>&nbsp;<a href="#I:%E8%A7%A3">解</a>&nbsp;<a href="#I:%E9%80%B2">進</a>&nbsp;<a href="#I:%E9%97%9C">關</a>&nbsp;<a href="#I:%E9%9D%9C">靜</a>&nbsp;<br><a href="allclasses-index.html">All&nbsp;Classes&nbsp;and&nbsp;Interfaces</a><span class="vertical-separator">|</span><a href="allpackages-index.html">All&nbsp;Packages</a></main>
+<a href="#I:A">A</a>&nbsp;<a href="#I:B">B</a>&nbsp;<a href="#I:C">C</a>&nbsp;<a href="#I:D">D</a>&nbsp;<a href="#I:E">E</a>&nbsp;<a href="#I:F">F</a>&nbsp;<a href="#I:G">G</a>&nbsp;<a href="#I:H">H</a>&nbsp;<a href="#I:K">K</a>&nbsp;<a href="#I:M">M</a>&nbsp;<a href="#I:N">N</a>&nbsp;<a href="#I:O">O</a>&nbsp;<a href="#I:P">P</a>&nbsp;<a href="#I:R">R</a>&nbsp;<a href="#I:S">S</a>&nbsp;<a href="#I:T">T</a>&nbsp;<a href="#I:U">U</a>&nbsp;<a href="#I:V">V</a>&nbsp;<a href="#I:%E4%B8%89">三</a>&nbsp;<a href="#I:%E5%8B%95">動</a>&nbsp;<a href="#I:%E5%95%8F">問</a>&nbsp;<a href="#I:%E5%BF%AB">快</a>&nbsp;<a href="#I:%E6%94%AF">支</a>&nbsp;<a href="#I:%E6%A0%B8">核</a>&nbsp;<a href="#I:%E6%A8%99">標</a>&nbsp;<a href="#I:%E6%A8%A1">模</a>&nbsp;<a href="#I:%E6%AC%84">欄</a>&nbsp;<a href="#I:%E7%94%9F">生</a>&nbsp;<a href="#I:%E8%87%AA">自</a>&nbsp;<a href="#I:%E8%A7%A3">解</a>&nbsp;<a href="#I:%E9%80%B2">進</a>&nbsp;<a href="#I:%E9%97%9C">關</a>&nbsp;<a href="#I:%E9%9D%9C">靜</a>&nbsp;<br><a href="allclasses-index.html">All&nbsp;Classes&nbsp;and&nbsp;Interfaces</a><span class="vertical-separator">|</span><a href="allpackages-index.html">All&nbsp;Packages</a></main>
 </div>
 </body>
 </html>

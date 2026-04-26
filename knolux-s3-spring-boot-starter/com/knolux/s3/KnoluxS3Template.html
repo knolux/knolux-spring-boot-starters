@@ -63,7 +63,8 @@ loadScripts(document, 'script');</script>
 <li><a href="#method-summary" tabindex="0">Method Summary</a></li>
 <li><a href="#constructor-detail" tabindex="0">Constructor Details</a>
 <ol class="toc-list">
-<li><a href="#%3Cinit%3E()" tabindex="0">KnoluxS3Template()</a></li>
+<li><a href="#%3Cinit%3E(com.knolux.s3.S3ClientProvider,java.util.concurrent.Executor)" tabindex="0">KnoluxS3Template(S3ClientProvider, Executor)</a></li>
+<li><a href="#%3Cinit%3E(com.knolux.s3.S3ClientProvider)" tabindex="0">KnoluxS3Template(S3ClientProvider)</a></li>
 </ol>
 </li>
 <li><a href="#method-detail" tabindex="0">Method Details</a>
@@ -127,7 +128,7 @@ s3Template.download(spec, AsyncResponseTransformer.toBytes());
 <dd>
 <ul class="tag-list">
 <li><a href="KnoluxS3OperationSpec.html" title="class in com.knolux.s3"><code>KnoluxS3OperationSpec</code></a></li>
-<li><a href="KnoluxS3ClientFactory.html" title="class in com.knolux.s3"><code>KnoluxS3ClientFactory</code></a></li>
+<li><a href="S3ClientProvider.html" title="interface in com.knolux.s3"><code>S3ClientProvider</code></a></li>
 </ul>
 </dd>
 </dl>
@@ -143,8 +144,15 @@ s3Template.download(spec, AsyncResponseTransformer.toBytes());
 <div class="summary-table two-column-summary">
 <div class="table-header col-first">Constructor</div>
 <div class="table-header col-last">Description</div>
-<div class="col-constructor-name even-row-color"><code><a href="#%3Cinit%3E()" class="member-name-link">KnoluxS3Template</a>()</code></div>
-<div class="col-last even-row-color">&nbsp;</div>
+<div class="col-constructor-name even-row-color"><code><a href="#%3Cinit%3E(com.knolux.s3.S3ClientProvider)" class="member-name-link">KnoluxS3Template</a><wbr>(<a href="S3ClientProvider.html" title="interface in com.knolux.s3">S3ClientProvider</a>&nbsp;clientProvider)</code></div>
+<div class="col-last even-row-color">
+<div class="block">向下兼容建構子，使用 <a href="https://docs.oracle.com/en/java/javase/25/docs/api/java.base/java/util/concurrent/ForkJoinPool.html#commonPool()" title="class or interface in java.util.concurrent" class="external-link"><code>ForkJoinPool.commonPool()</code></a> 作為預設 executor。</div>
+</div>
+<div class="col-constructor-name odd-row-color"><code><a href="#%3Cinit%3E(com.knolux.s3.S3ClientProvider,java.util.concurrent.Executor)" class="member-name-link">KnoluxS3Template</a><wbr>(<a href="S3ClientProvider.html" title="interface in com.knolux.s3">S3ClientProvider</a>&nbsp;clientProvider,
+ <a href="https://docs.oracle.com/en/java/javase/25/docs/api/java.base/java/util/concurrent/Executor.html" title="class or interface in java.util.concurrent" class="external-link">Executor</a>&nbsp;continuationExecutor)</code></div>
+<div class="col-last odd-row-color">
+<div class="block">完整建構子。</div>
+</div>
 </div>
 </section>
 </li>
@@ -219,10 +227,30 @@ s3Template.download(spec, AsyncResponseTransformer.toBytes());
 <h2>Constructor Details</h2>
 <ul class="member-list">
 <li>
-<section class="detail" id="&lt;init&gt;()">
+<section class="detail" id="&lt;init&gt;(com.knolux.s3.S3ClientProvider,java.util.concurrent.Executor)">
 <h3>KnoluxS3Template</h3>
 <div class="horizontal-scroll">
-<div class="member-signature"><span class="modifiers">public</span>&nbsp;<span class="element-name">KnoluxS3Template</span>()</div>
+<div class="member-signature"><span class="modifiers">public</span>&nbsp;<span class="element-name">KnoluxS3Template</span><wbr><span class="parameters">(<a href="S3ClientProvider.html" title="interface in com.knolux.s3">S3ClientProvider</a>&nbsp;clientProvider,
+ <a href="https://docs.oracle.com/en/java/javase/25/docs/api/java.base/java/util/concurrent/Executor.html" title="class or interface in java.util.concurrent" class="external-link">Executor</a>&nbsp;continuationExecutor)</span></div>
+<div class="block">完整建構子。</div>
+<dl class="notes">
+<dt>Parameters:</dt>
+<dd><code>clientProvider</code> - S3 client 提供者</dd>
+<dd><code>continuationExecutor</code> - 用於執行 <a href="https://docs.oracle.com/en/java/javase/25/docs/api/java.base/java/util/concurrent/CompletableFuture.html#whenCompleteAsync(java.util.function.BiConsumer)" title="class or interface in java.util.concurrent" class="external-link"><code>CompletableFuture.whenCompleteAsync(BiConsumer)</code></a> 回呼的 Executor</dd>
+</dl>
+</div>
+</section>
+</li>
+<li>
+<section class="detail" id="&lt;init&gt;(com.knolux.s3.S3ClientProvider)">
+<h3>KnoluxS3Template</h3>
+<div class="horizontal-scroll">
+<div class="member-signature"><span class="modifiers">public</span>&nbsp;<span class="element-name">KnoluxS3Template</span><wbr><span class="parameters">(<a href="S3ClientProvider.html" title="interface in com.knolux.s3">S3ClientProvider</a>&nbsp;clientProvider)</span></div>
+<div class="block">向下兼容建構子，使用 <a href="https://docs.oracle.com/en/java/javase/25/docs/api/java.base/java/util/concurrent/ForkJoinPool.html#commonPool()" title="class or interface in java.util.concurrent" class="external-link"><code>ForkJoinPool.commonPool()</code></a> 作為預設 executor。</div>
+<dl class="notes">
+<dt>Parameters:</dt>
+<dd><code>clientProvider</code> - S3 client 提供者</dd>
+</dl>
 </div>
 </section>
 </li>

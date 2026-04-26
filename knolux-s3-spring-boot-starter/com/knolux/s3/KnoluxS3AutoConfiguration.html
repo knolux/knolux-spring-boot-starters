@@ -63,7 +63,8 @@ loadScripts(document, 'script');</script>
 <li><a href="#method-detail" tabindex="0">Method Details</a>
 <ol class="toc-list">
 <li><a href="#knoluxS3ClientFactory(com.knolux.s3.KnoluxS3Properties)" tabindex="0">knoluxS3ClientFactory(KnoluxS3Properties)</a></li>
-<li><a href="#knoluxS3Template(com.knolux.s3.KnoluxS3ClientFactory)" tabindex="0">knoluxS3Template(KnoluxS3ClientFactory)</a></li>
+<li><a href="#knoluxS3Executor(org.springframework.core.env.Environment)" tabindex="0">knoluxS3Executor(Environment)</a></li>
+<li><a href="#knoluxS3Template(com.knolux.s3.S3ClientProvider,java.util.concurrent.Executor)" tabindex="0">knoluxS3Template(S3ClientProvider, Executor)</a></li>
 </ol>
 </li>
 </ol>
@@ -146,9 +147,15 @@ s3Template.download(spec, AsyncResponseTransformer.toBytes());
 <div class="col-first even-row-color method-summary-table method-summary-table-tab2 method-summary-table-tab4"><code><a href="KnoluxS3ClientFactory.html" title="class in com.knolux.s3">KnoluxS3ClientFactory</a></code></div>
 <div class="col-second even-row-color method-summary-table method-summary-table-tab2 method-summary-table-tab4"><code><a href="#knoluxS3ClientFactory(com.knolux.s3.KnoluxS3Properties)" class="member-name-link">knoluxS3ClientFactory</a><wbr>(<a href="KnoluxS3Properties.html" title="class in com.knolux.s3">KnoluxS3Properties</a>&nbsp;props)</code></div>
 <div class="col-last even-row-color method-summary-table method-summary-table-tab2 method-summary-table-tab4">&nbsp;</div>
-<div class="col-first odd-row-color method-summary-table method-summary-table-tab2 method-summary-table-tab4"><code><a href="KnoluxS3Template.html" title="class in com.knolux.s3">KnoluxS3Template</a></code></div>
-<div class="col-second odd-row-color method-summary-table method-summary-table-tab2 method-summary-table-tab4"><code><a href="#knoluxS3Template(com.knolux.s3.KnoluxS3ClientFactory)" class="member-name-link">knoluxS3Template</a><wbr>(<a href="KnoluxS3ClientFactory.html" title="class in com.knolux.s3">KnoluxS3ClientFactory</a>&nbsp;clientFactory)</code></div>
-<div class="col-last odd-row-color method-summary-table method-summary-table-tab2 method-summary-table-tab4">&nbsp;</div>
+<div class="col-first odd-row-color method-summary-table method-summary-table-tab2 method-summary-table-tab4"><code><a href="https://docs.oracle.com/en/java/javase/25/docs/api/java.base/java/util/concurrent/Executor.html" title="class or interface in java.util.concurrent" class="external-link">Executor</a></code></div>
+<div class="col-second odd-row-color method-summary-table method-summary-table-tab2 method-summary-table-tab4"><code><a href="#knoluxS3Executor(org.springframework.core.env.Environment)" class="member-name-link">knoluxS3Executor</a><wbr>(org.springframework.core.env.Environment&nbsp;env)</code></div>
+<div class="col-last odd-row-color method-summary-table method-summary-table-tab2 method-summary-table-tab4">
+<div class="block">供 <a href="KnoluxS3Template.html" title="class in com.knolux.s3"><code>KnoluxS3Template</code></a> 執行 CompletableFuture 回呼的 Executor。</div>
+</div>
+<div class="col-first even-row-color method-summary-table method-summary-table-tab2 method-summary-table-tab4"><code><a href="KnoluxS3Template.html" title="class in com.knolux.s3">KnoluxS3Template</a></code></div>
+<div class="col-second even-row-color method-summary-table method-summary-table-tab2 method-summary-table-tab4"><code><a href="#knoluxS3Template(com.knolux.s3.S3ClientProvider,java.util.concurrent.Executor)" class="member-name-link">knoluxS3Template</a><wbr>(<a href="S3ClientProvider.html" title="interface in com.knolux.s3">S3ClientProvider</a>&nbsp;clientProvider,
+ <a href="https://docs.oracle.com/en/java/javase/25/docs/api/java.base/java/util/concurrent/Executor.html" title="class or interface in java.util.concurrent" class="external-link">Executor</a>&nbsp;knoluxS3Executor)</code></div>
+<div class="col-last even-row-color method-summary-table method-summary-table-tab2 method-summary-table-tab4">&nbsp;</div>
 </div>
 </div>
 </div>
@@ -187,18 +194,41 @@ s3Template.download(spec, AsyncResponseTransformer.toBytes());
 <h3>knoluxS3ClientFactory</h3>
 <div class="horizontal-scroll">
 <div class="member-signature"><span class="annotations">@Bean(destroyMethod="close")
-@ConditionalOnMissingBean
+@ConditionalOnMissingBean(<a href="S3ClientProvider.html" title="interface in com.knolux.s3">S3ClientProvider</a>.class)
 </span><span class="modifiers">public</span>&nbsp;<span class="return-type"><a href="KnoluxS3ClientFactory.html" title="class in com.knolux.s3">KnoluxS3ClientFactory</a></span>&nbsp;<span class="element-name">knoluxS3ClientFactory</span><wbr><span class="parameters">(<a href="KnoluxS3Properties.html" title="class in com.knolux.s3">KnoluxS3Properties</a>&nbsp;props)</span></div>
 </div>
 </section>
 </li>
 <li>
-<section class="detail" id="knoluxS3Template(com.knolux.s3.KnoluxS3ClientFactory)">
+<section class="detail" id="knoluxS3Executor(org.springframework.core.env.Environment)">
+<h3>knoluxS3Executor</h3>
+<div class="horizontal-scroll">
+<div class="member-signature"><span class="annotations">@Bean(name="knoluxS3Executor",
+      destroyMethod="close")
+@ConditionalOnMissingBean(name="knoluxS3Executor")
+</span><span class="modifiers">public</span>&nbsp;<span class="return-type"><a href="https://docs.oracle.com/en/java/javase/25/docs/api/java.base/java/util/concurrent/Executor.html" title="class or interface in java.util.concurrent" class="external-link">Executor</a></span>&nbsp;<span class="element-name">knoluxS3Executor</span><wbr><span class="parameters">(org.springframework.core.env.Environment&nbsp;env)</span></div>
+<div class="block">供 <a href="KnoluxS3Template.html" title="class in com.knolux.s3"><code>KnoluxS3Template</code></a> 執行 CompletableFuture 回呼的 Executor。
+
+<p>當 <code>spring.threads.virtual.enabled=true</code> 時使用 Java 25 Virtual Thread per task executor，
+否則退回至 <a href="https://docs.oracle.com/en/java/javase/25/docs/api/java.base/java/util/concurrent/ForkJoinPool.html#commonPool()" title="class or interface in java.util.concurrent" class="external-link"><code>ForkJoinPool.commonPool()</code></a>。可由使用者以相同 Bean 名稱覆寫。</div>
+<dl class="notes">
+<dt>Parameters:</dt>
+<dd><code>env</code> - Spring Environment（讀取 spring.threads.virtual.enabled 屬性）</dd>
+<dt>Returns:</dt>
+<dd>Virtual Thread executor 或 common pool</dd>
+</dl>
+</div>
+</section>
+</li>
+<li>
+<section class="detail" id="knoluxS3Template(com.knolux.s3.S3ClientProvider,java.util.concurrent.Executor)">
 <h3>knoluxS3Template</h3>
 <div class="horizontal-scroll">
 <div class="member-signature"><span class="annotations">@Bean
 @ConditionalOnMissingBean
-</span><span class="modifiers">public</span>&nbsp;<span class="return-type"><a href="KnoluxS3Template.html" title="class in com.knolux.s3">KnoluxS3Template</a></span>&nbsp;<span class="element-name">knoluxS3Template</span><wbr><span class="parameters">(<a href="KnoluxS3ClientFactory.html" title="class in com.knolux.s3">KnoluxS3ClientFactory</a>&nbsp;clientFactory)</span></div>
+</span><span class="modifiers">public</span>&nbsp;<span class="return-type"><a href="KnoluxS3Template.html" title="class in com.knolux.s3">KnoluxS3Template</a></span>&nbsp;<span class="element-name">knoluxS3Template</span><wbr><span class="parameters">(<a href="S3ClientProvider.html" title="interface in com.knolux.s3">S3ClientProvider</a>&nbsp;clientProvider,
+ @Qualifier("knoluxS3Executor")
+ <a href="https://docs.oracle.com/en/java/javase/25/docs/api/java.base/java/util/concurrent/Executor.html" title="class or interface in java.util.concurrent" class="external-link">Executor</a>&nbsp;knoluxS3Executor)</span></div>
 </div>
 </section>
 </li>

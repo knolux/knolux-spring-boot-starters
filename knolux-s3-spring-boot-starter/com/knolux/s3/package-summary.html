@@ -50,7 +50,16 @@ loadScripts(document, 'script');</script>
 <nav role="navigation" class="toc" aria-label="Table of contents">
 <div class="toc-header">Contents</div>
 <ol class="toc-list" tabindex="-1">
-<li><a href="#" tabindex="0">Description</a></li>
+<li><a href="#" tabindex="0">Description</a>
+<ol class="toc-list">
+<li><a href="#--heading" tabindex="0">模組概覽</a></li>
+<li><a href="#--heading1" tabindex="0">核心類別</a></li>
+<li><a href="#bean--heading" tabindex="0">Bean 依賴關係</a></li>
+<li><a href="#--heading2" tabindex="0">快速開始</a></li>
+<li><a href="#-api--heading" tabindex="0">三層 API 範例</a></li>
+<li><a href="#virtual-thread--heading" tabindex="0">Virtual Thread 支援</a></li>
+</ol>
+</li>
 <li><a href="#class-summary" tabindex="0">Classes and Interfaces</a></li>
 </ol>
 <button class="hide-sidebar"><span>Hide sidebar&nbsp;</span><img src="../../../resource-files/left.svg" alt="Hide sidebar"></button><button class="show-sidebar"><img src="../../../resource-files/right.svg" alt="Show sidebar"><span>&nbsp;Show sidebar</span></button></nav>
@@ -61,12 +70,95 @@ loadScripts(document, 'script');</script>
 <hr>
 <div class="horizontal-scroll">
 <div class="package-signature">package <span class="element-name">com.knolux.s3</span></div>
+<section class="package-description" id="package-description">
+<div class="block">Knolux S3 Spring Boot Starter 核心套件。
+
+<h2 id="--heading">模組概覽</h2>
+<p>提供 AWS S3 相容端點（AWS S3 / SeaweedFS / MinIO）的非同步操作封裝，
+支援以下部署情境：
+<ul>
+  <li><strong>K8s 內部直連（HTTP）</strong> — 直接對 SeaweedFS 發送請求</li>
+  <li><strong>自簽 HTTPS</strong> — <code>trustSelfSigned=true</code> 略過憑證驗證
+      （非正式環境）</li>
+  <li><strong>Nginx 反向代理</strong> — <code>removePathPrefix=true</code>；
+      <a href="KnoluxNoPathPrefixSigner.html" title="class in com.knolux.s3"><code>KnoluxNoPathPrefixSigner</code></a> 在簽章時移除路徑前綴</li>
+  <li><strong>標準 AWS S3</strong> — <code>endpoint</code> 留空、
+      <code>forcePathStyle=false</code>（virtual-hosted style）</li>
+</ul>
+
+<h2 id="--heading1">核心類別</h2>
+<ul>
+  <li><a href="KnoluxS3AutoConfiguration.html" title="class in com.knolux.s3"><code>KnoluxS3AutoConfiguration</code></a> — Spring Boot 自動設定進入點</li>
+  <li><a href="KnoluxS3Template.html" title="class in com.knolux.s3"><code>KnoluxS3Template</code></a> — 三層 API（靜態 / 動態 / 進階）操作門面</li>
+  <li><a href="S3ClientProvider.html" title="interface in com.knolux.s3"><code>S3ClientProvider</code></a> — client 提供者抽象介面（DIP 合規）</li>
+  <li><a href="KnoluxS3ClientFactory.html" title="class in com.knolux.s3"><code>KnoluxS3ClientFactory</code></a> — <code>S3ClientProvider</code> 預設實作，
+      含連線快取機制</li>
+  <li><a href="KnoluxS3ConnectionDetails.html" title="class in com.knolux.s3"><code>KnoluxS3ConnectionDetails</code></a> — 連線參數不可變值物件
+      （Java record）</li>
+  <li><a href="KnoluxS3OperationSpec.html" title="class in com.knolux.s3"><code>KnoluxS3OperationSpec</code></a> — 動態操作規格（Builder 模式）</li>
+  <li><a href="KnoluxNoPathPrefixSigner.html" title="class in com.knolux.s3"><code>KnoluxNoPathPrefixSigner</code></a> — Nginx 代理場景的自訂 AWS 簽章器</li>
+</ul>
+
+<h2 id="bean--heading">Bean 依賴關係</h2>
+<pre>
+KnoluxS3Properties (knolux.s3.*)
+    └─► KnoluxS3AutoConfiguration
+            ├─► KnoluxS3ClientFactory implements S3ClientProvider
+            │       (destroyMethod=close, 釋放 Netty EventLoopGroup)
+            ├─► knoluxS3Executor (Executor)
+            │       spring.threads.virtual.enabled=true → VirtualThreadPerTaskExecutor
+            │       否則 ForkJoinPool.commonPool()
+            └─► KnoluxS3Template (S3ClientProvider, Executor)
+</pre>
+
+<h2 id="--heading2">快速開始</h2>
+<pre><code># application.yml — SeaweedFS 直連
+knolux:
+  s3:
+    endpoint: http://seaweedfs:8333
+    region: ap-northeast-1
+    bucket: my-bucket
+    access-key: ${S3_ACCESS_KEY}
+    secret-key: ${S3_SECRET_KEY}
+    force-path-style: true
+
+# Virtual Thread 啟用
+spring:
+  threads:
+    virtual:
+      enabled: true
+</code></pre>
+
+<h2 id="-api--heading">三層 API 範例</h2>
+<pre><code>// 靜態模式 — 使用 properties 預設連線
+s3Template.upload("my-bucket", "path/file.jpg", body);
+
+// 動態模式 — 從 payload 組裝
+KnoluxS3OperationSpec spec = KnoluxS3OperationSpec.builder()
+    .endpoint(payload.getEndpoint())
+    .bucket(payload.getBucket())
+    .key(payload.getKey())
+    .accessKey(payload.getSecretId())
+    .secretKey(payload.getSecretKey())
+    .build()
+    .mergeDefaults(s3Properties);
+s3Template.download(spec, AsyncResponseTransformer.toBytes());
+
+// 進階模式 — 明確指定連線
+s3Template.upload("bucket", "key", body, customConnectionDetails);
+</code></pre>
+
+<h2 id="virtual-thread--heading">Virtual Thread 支援</h2>
+<p>當 <code>spring.threads.virtual.enabled=true</code> 時，
+<a href="KnoluxS3Template.html" title="class in com.knolux.s3"><code>KnoluxS3Template</code></a> 的 <code>CompletableFuture</code> 完成回呼
+會於 Java 25 Virtual Thread 上執行，可在大量並行 S3 操作下顯著提升執行緒利用率。</div>
+</section>
 </div>
 <section class="summary">
 <ul class="summary-list">
 <li>
 <div id="class-summary">
-<div class="table-tabs" role="tablist" aria-orientation="horizontal"><button id="class-summary-tab0" role="tab" aria-selected="true" aria-controls="class-summary.tabpanel" tabindex="0" onkeydown="switchTab(event)" onclick="show('class-summary', 'class-summary', 2)" class="active-table-tab">All Classes and Interfaces</button><button id="class-summary-tab2" role="tab" aria-selected="false" aria-controls="class-summary.tabpanel" tabindex="-1" onkeydown="switchTab(event)" onclick="show('class-summary', 'class-summary-tab2', 2)" class="table-tab">Classes</button><button id="class-summary-tab4" role="tab" aria-selected="false" aria-controls="class-summary.tabpanel" tabindex="-1" onkeydown="switchTab(event)" onclick="show('class-summary', 'class-summary-tab4', 2)" class="table-tab">Record Classes</button></div>
+<div class="table-tabs" role="tablist" aria-orientation="horizontal"><button id="class-summary-tab0" role="tab" aria-selected="true" aria-controls="class-summary.tabpanel" tabindex="0" onkeydown="switchTab(event)" onclick="show('class-summary', 'class-summary', 2)" class="active-table-tab">All Classes and Interfaces</button><button id="class-summary-tab1" role="tab" aria-selected="false" aria-controls="class-summary.tabpanel" tabindex="-1" onkeydown="switchTab(event)" onclick="show('class-summary', 'class-summary-tab1', 2)" class="table-tab">Interfaces</button><button id="class-summary-tab2" role="tab" aria-selected="false" aria-controls="class-summary.tabpanel" tabindex="-1" onkeydown="switchTab(event)" onclick="show('class-summary', 'class-summary-tab2', 2)" class="table-tab">Classes</button><button id="class-summary-tab4" role="tab" aria-selected="false" aria-controls="class-summary.tabpanel" tabindex="-1" onkeydown="switchTab(event)" onclick="show('class-summary', 'class-summary-tab4', 2)" class="table-tab">Record Classes</button></div>
 <div id="class-summary.tabpanel" role="tabpanel" aria-labelledby="class-summary-tab0">
 <div class="summary-table two-column-summary">
 <div class="table-header col-first">Class</div>
@@ -98,6 +190,10 @@ loadScripts(document, 'script');</script>
 <div class="col-first even-row-color class-summary class-summary-tab2"><a href="KnoluxS3Template.html" title="class in com.knolux.s3">KnoluxS3Template</a></div>
 <div class="col-last even-row-color class-summary class-summary-tab2">
 <div class="block">S3 非同步操作模板，封裝 Upload、Download、Delete。</div>
+</div>
+<div class="col-first odd-row-color class-summary class-summary-tab1"><a href="S3ClientProvider.html" title="interface in com.knolux.s3">S3ClientProvider</a></div>
+<div class="col-last odd-row-color class-summary class-summary-tab1">
+<div class="block"><code>S3AsyncClient</code> 提供者抽象介面，供 <a href="KnoluxS3Template.html" title="class in com.knolux.s3"><code>KnoluxS3Template</code></a> 依賴。</div>
 </div>
 </div>
 </div>

@@ -86,13 +86,13 @@ loadScripts(document, 'script');</script>
 <section class="class-description" id="class-description">
 <dl class="notes">
 <dt>All Implemented Interfaces:</dt>
-<dd><code><a href="https://docs.oracle.com/en/java/javase/25/docs/api/java.base/java/lang/AutoCloseable.html" title="class or interface in java.lang" class="external-link">AutoCloseable</a></code></dd>
+<dd><code><a href="S3ClientProvider.html" title="interface in com.knolux.s3">S3ClientProvider</a>, <a href="https://docs.oracle.com/en/java/javase/25/docs/api/java.base/java/lang/AutoCloseable.html" title="class or interface in java.lang" class="external-link">AutoCloseable</a></code></dd>
 </dl>
 <hr>
 <div class="horizontal-scroll">
 <div class="type-signature"><span class="modifiers">public class </span><span class="element-name type-name-label">KnoluxS3ClientFactory</span>
 <span class="extends-implements">extends <a href="https://docs.oracle.com/en/java/javase/25/docs/api/java.base/java/lang/Object.html" title="class or interface in java.lang" class="external-link">Object</a>
-implements <a href="https://docs.oracle.com/en/java/javase/25/docs/api/java.base/java/lang/AutoCloseable.html" title="class or interface in java.lang" class="external-link">AutoCloseable</a></span></div>
+implements <a href="S3ClientProvider.html" title="interface in com.knolux.s3">S3ClientProvider</a></span></div>
 <div class="block"><code>S3AsyncClient</code> 工廠，以 <a href="KnoluxS3ConnectionDetails.html" title="class in com.knolux.s3"><code>KnoluxS3ConnectionDetails</code></a> 的快取鍵管理 client 實例。
 
 <h2 id="--heading">快取策略</h2>
@@ -111,8 +111,8 @@ HTTP client 與 S3AsyncClient 分開快取，以便 <a href="#close()"><code>clo
 </ul>
 
 <h2 id="--heading2">生命週期</h2>
-<p>本類別實作 <a href="https://docs.oracle.com/en/java/javase/25/docs/api/java.base/java/lang/AutoCloseable.html" title="class or interface in java.lang" class="external-link"><code>AutoCloseable</code></a>，Spring 容器關閉時透過
-<code>@Bean(destroyMethod = "close")</code> 自動呼叫 <a href="#close()"><code>close()</code></a>，
+<p>本類別實作 <a href="S3ClientProvider.html" title="interface in com.knolux.s3"><code>S3ClientProvider</code></a>（<a href="https://docs.oracle.com/en/java/javase/25/docs/api/java.base/java/lang/AutoCloseable.html" title="class or interface in java.lang" class="external-link"><code>AutoCloseable</code></a> 的子介面），
+Spring 容器關閉時透過 <code>@Bean(destroyMethod = "close")</code> 自動呼叫 <a href="#close()"><code>close()</code></a>，
 依序釋放 S3AsyncClient 再釋放 Netty HTTP client。
 注意：<a href="#close()"><code>close()</code></a> 不等待進行中的非同步 I/O 完成；
 呼叫方應在關閉前確認所有 <a href="https://docs.oracle.com/en/java/javase/25/docs/api/java.base/java/util/concurrent/CompletableFuture.html" title="class or interface in java.util.concurrent" class="external-link"><code>CompletableFuture</code></a> 已完成或取消。</div>
@@ -120,6 +120,7 @@ HTTP client 與 S3AsyncClient 分開快取，以便 <a href="#close()"><code>clo
 <dt>See Also:</dt>
 <dd>
 <ul class="tag-list">
+<li><a href="S3ClientProvider.html" title="interface in com.knolux.s3"><code>S3ClientProvider</code></a></li>
 <li><a href="KnoluxS3Template.html" title="class in com.knolux.s3"><code>KnoluxS3Template</code></a></li>
 <li><a href="KnoluxNoPathPrefixSigner.html" title="class in com.knolux.s3"><code>KnoluxNoPathPrefixSigner</code></a></li>
 </ul>
@@ -215,6 +216,8 @@ HTTP client 與 S3AsyncClient 分開快取，以便 <a href="#close()"><code>clo
 <p>相同 <a href="KnoluxS3ConnectionDetails.html#toCacheKey()"><code>KnoluxS3ConnectionDetails.toCacheKey()</code></a> 的參數會回傳同一個快取實例。
 <code>details</code> 為 <code>null</code> 時使用建構時注入的預設連線（靜態模式）。</div>
 <dl class="notes">
+<dt>Specified by:</dt>
+<dd><code><a href="S3ClientProvider.html#getClient(com.knolux.s3.KnoluxS3ConnectionDetails)">getClient</a></code>&nbsp;in interface&nbsp;<code><a href="S3ClientProvider.html" title="interface in com.knolux.s3">S3ClientProvider</a></code></dd>
 <dt>Parameters:</dt>
 <dd><code>details</code> - 連線參數；<code>null</code> 代表使用預設連線</dd>
 <dt>Returns:</dt>
@@ -232,6 +235,8 @@ HTTP client 與 S3AsyncClient 分開快取，以便 <a href="#close()"><code>clo
 <div class="member-signature"><span class="modifiers">public</span>&nbsp;<span class="return-type">software.amazon.awssdk.services.s3.S3AsyncClient</span>&nbsp;<span class="element-name">getClient</span>()</div>
 <div class="block">使用預設連線取得 <code>S3AsyncClient</code>（靜態模式捷徑）。</div>
 <dl class="notes">
+<dt>Specified by:</dt>
+<dd><code><a href="S3ClientProvider.html#getClient()">getClient</a></code>&nbsp;in interface&nbsp;<code><a href="S3ClientProvider.html" title="interface in com.knolux.s3">S3ClientProvider</a></code></dd>
 <dt>Returns:</dt>
 <dd>預設連線的 <code>S3AsyncClient</code></dd>
 </dl>
@@ -251,6 +256,8 @@ HTTP client 與 S3AsyncClient 分開快取，以便 <a href="#close()"><code>clo
 <dl class="notes">
 <dt>Specified by:</dt>
 <dd><code><a href="https://docs.oracle.com/en/java/javase/25/docs/api/java.base/java/lang/AutoCloseable.html#close()" title="class or interface in java.lang" class="external-link">close</a></code>&nbsp;in interface&nbsp;<code><a href="https://docs.oracle.com/en/java/javase/25/docs/api/java.base/java/lang/AutoCloseable.html" title="class or interface in java.lang" class="external-link">AutoCloseable</a></code></dd>
+<dt>Specified by:</dt>
+<dd><code><a href="S3ClientProvider.html#close()">close</a></code>&nbsp;in interface&nbsp;<code><a href="S3ClientProvider.html" title="interface in com.knolux.s3">S3ClientProvider</a></code></dd>
 </dl>
 </div>
 </section>
