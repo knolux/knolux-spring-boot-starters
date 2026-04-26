@@ -1,6 +1,6 @@
 [versions]
 testcontainers-redis = "2.2.2"
-testcontainers = "1.20.6"
+testcontainers = "1.21.4"
 awssdk = "2.31.40"
 
 [libraries]
