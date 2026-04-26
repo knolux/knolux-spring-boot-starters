@@ -1,11 +1,9 @@
 package com.knolux.redis;
 
 import org.jspecify.annotations.Nullable;
-import org.springframework.boot.autoconfigure.condition.ConditionalOnClass;
 import org.springframework.boot.health.contributor.Health;
 import org.springframework.boot.health.contributor.HealthIndicator;
 import org.springframework.data.redis.core.StringRedisTemplate;
-import org.springframework.stereotype.Component;
 
 /**
  * Redis 連線健康狀態指標。
@@ -61,8 +59,6 @@ import org.springframework.stereotype.Component;
  * @see HealthIndicator
  * @see KnoluxRedisAutoConfiguration
  */
-@Component
-@ConditionalOnClass(HealthIndicator.class)
 public class KnoluxRedisHealthIndicator implements HealthIndicator {
 
     private final StringRedisTemplate redis;

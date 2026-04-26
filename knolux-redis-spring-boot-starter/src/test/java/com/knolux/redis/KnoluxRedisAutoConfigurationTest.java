@@ -1,6 +1,7 @@
 package com.knolux.redis;
 
 import com.knolux.redis.KnoluxRedisAutoConfiguration;
+import com.knolux.redis.KnoluxRedisHealthIndicator;
 import org.junit.jupiter.api.Test;
 import org.springframework.boot.autoconfigure.AutoConfigurations;
 import org.springframework.boot.test.context.runner.ApplicationContextRunner;
@@ -279,5 +280,39 @@ class KnoluxRedisAutoConfigurationTest {
                             ctx.getBean("customFactory", LettuceConnectionFactory.class);
                     assertThat(factory.getHostName()).isEqualTo("custom-host");
                 });
+    }
+
+    // ─────────────────────────────────────────────
+    // HealthIndicator Bean
+    // ─────────────────────────────────────────────
+
+    /**
+     * 驗證 Actuator 在 classpath 上時，自動設定能正確建立 knoluxRedis HealthIndicator Bean。
+     * 此測試確認 HealthIndicator 是透過 @Bean 注册（而非 @Component + component scan）。
+     */
+    @Test
+    void withActuatorPresent_shouldCreateHealthIndicatorBean() {
+        contextRunner
+                .withPropertyValues("knolux.redis.url=redis://localhost:6379")
+                .run(ctx ->
+                        assertThat(ctx).hasBean("knoluxRedis")
+                );
+    }
+
+    /**
+     * 驗證使用者自訂的 knoluxRedis Bean 不會被自動設定覆寫。
+     */
+    @Test
+    void userDefinedHealthIndicator_shouldNotBeOverridden() {
+        contextRunner
+                .withPropertyValues("knolux.redis.url=redis://localhost:6379")
+                .withBean(
+                        "knoluxRedis",
+                        KnoluxRedisHealthIndicator.class,
+                        () -> new KnoluxRedisHealthIndicator(null)
+                )
+                .run(ctx ->
+                        assertThat(ctx).hasSingleBean(KnoluxRedisHealthIndicator.class)
+                );
     }
 }

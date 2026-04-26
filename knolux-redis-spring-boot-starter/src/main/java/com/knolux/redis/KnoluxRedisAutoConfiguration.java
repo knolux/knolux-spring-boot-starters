@@ -4,8 +4,10 @@ import com.knolux.redis.connection.LettuceConnectionFactoryBuilder;
 import com.knolux.redis.connection.SentinelConnectionFactoryBuilder;
 import com.knolux.redis.connection.StandaloneConnectionFactoryBuilder;
 import org.springframework.boot.autoconfigure.AutoConfiguration;
+import org.springframework.boot.autoconfigure.condition.ConditionalOnClass;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnMissingBean;
 import org.springframework.boot.context.properties.EnableConfigurationProperties;
+import org.springframework.boot.health.contributor.HealthIndicator;
 import org.springframework.context.annotation.Bean;
 import org.springframework.data.redis.connection.RedisConnectionFactory;
 import org.springframework.data.redis.connection.lettuce.LettuceConnectionFactory;
@@ -145,6 +147,26 @@ public class KnoluxRedisAutoConfiguration {
         template.setKeySerializer(new StringRedisSerializer());
         template.setHashKeySerializer(new StringRedisSerializer());
         return template;
+    }
+
+    // ─────────────────────────────────────────────
+    // 健康指標（需要 Spring Boot Actuator）
+    // ─────────────────────────────────────────────
+
+    /**
+     * 建立 Redis 連線健康指標 Bean，Bean 名稱為 {@code knoluxRedis}。
+     *
+     * <p>僅在 {@code spring-boot-starter-actuator} 存在於 classpath 時建立，
+     * 不強制要求使用者引入 Actuator 依賴。使用者可定義同名 Bean 覆寫此行為。
+     *
+     * @param template 用於發送 PING 的 StringRedisTemplate
+     * @return KnoluxRedisHealthIndicator 實例
+     */
+    @Bean(name = "knoluxRedis")
+    @ConditionalOnClass(HealthIndicator.class)
+    @ConditionalOnMissingBean(name = "knoluxRedis")
+    public KnoluxRedisHealthIndicator knoluxRedisHealthIndicator(StringRedisTemplate template) {
+        return new KnoluxRedisHealthIndicator(template);
     }
 
 }

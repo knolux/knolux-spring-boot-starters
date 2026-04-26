@@ -40,10 +40,7 @@ import static org.assertj.core.api.Assertions.assertThat;
  * @see KnoluxRedisHealthIndicatorTest 單元測試（使用 Mock，無需 Docker）
  */
 @SpringBootTest(
-        classes = {
-                KnoluxRedisAutoConfiguration.class,
-                KnoluxRedisHealthIndicator.class
-        },
+        classes = KnoluxRedisAutoConfiguration.class,
         properties = "spring.data.redis.repositories.enabled=false"
 )
 class KnoluxRedisHealthIndicatorIntegrationTest {
