@@ -47,13 +47,13 @@ import java.util.concurrent.CompletableFuture;
  * }</pre>
  *
  * @see KnoluxS3OperationSpec
- * @see KnoluxS3ClientFactory
+ * @see S3ClientProvider
  */
 @Slf4j
 @RequiredArgsConstructor
 public class KnoluxS3Template {
 
-    private final KnoluxS3ClientFactory clientFactory;
+    private final S3ClientProvider clientProvider;
 
     // ── 靜態模式（Properties 預設連線）──────────────────────────────────────────
 
@@ -96,7 +96,7 @@ public class KnoluxS3Template {
             KnoluxS3ConnectionDetails conn) {
 
         var request = PutObjectRequest.builder().bucket(bucket).key(key).build();
-        return clientFactory.getClient(conn)
+        return clientProvider.getClient(conn)
                 .putObject(request, body)
                 .whenComplete((_, err) -> {
                     if (err != null) log.error("上傳失敗: bucket={}, key={}", bucket, key, err);
@@ -110,7 +110,7 @@ public class KnoluxS3Template {
             KnoluxS3ConnectionDetails conn) {
 
         var request = GetObjectRequest.builder().bucket(bucket).key(key).build();
-        return clientFactory.getClient(conn)
+        return clientProvider.getClient(conn)
                 .getObject(request, transformer)
                 .whenComplete((_, err) -> {
                     if (err != null) log.error("下載失敗: bucket={}, key={}", bucket, key, err);
@@ -123,7 +123,7 @@ public class KnoluxS3Template {
             KnoluxS3ConnectionDetails conn) {
 
         var request = DeleteObjectRequest.builder().bucket(bucket).key(key).build();
-        return clientFactory.getClient(conn)
+        return clientProvider.getClient(conn)
                 .deleteObject(request)
                 .whenComplete((_, err) -> {
                     if (err != null) log.error("刪除失敗: bucket={}, key={}", bucket, key, err);

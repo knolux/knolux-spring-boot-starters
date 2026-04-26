@@ -144,4 +144,25 @@ class KnoluxS3AutoConfigurationTest {
                 )
                 .run(ctx -> assertThat(ctx).hasSingleBean(KnoluxS3Template.class));
     }
+
+    @Test
+    void userDefinedS3ClientProvider_shouldSuppressDefaultFactory() {
+        S3ClientProvider mockProvider = new S3ClientProvider() {
+            @Override
+            public software.amazon.awssdk.services.s3.S3AsyncClient getClient(KnoluxS3ConnectionDetails details) {
+                return null;
+            }
+            @Override
+            public void close() {}
+        };
+
+        runner.withBean("customProvider", S3ClientProvider.class, () -> mockProvider)
+                .run(ctx -> {
+                    assertThat(ctx).hasSingleBean(S3ClientProvider.class);
+                    // 預設 KnoluxS3ClientFactory 不應建立（@ConditionalOnMissingBean(S3ClientProvider.class)）
+                    assertThat(ctx).doesNotHaveBean(KnoluxS3ClientFactory.class);
+                    // KnoluxS3Template 應使用 mock provider
+                    assertThat(ctx).hasSingleBean(KnoluxS3Template.class);
+                });
+    }
 }

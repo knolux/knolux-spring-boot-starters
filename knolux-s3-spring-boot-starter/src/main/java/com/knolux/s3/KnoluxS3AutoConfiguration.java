@@ -40,14 +40,14 @@ public class KnoluxS3AutoConfiguration {
 
     // destroyMethod = "close" 確保 Spring 容器關閉時釋放 Netty 執行緒與連線池
     @Bean(destroyMethod = "close")
-    @ConditionalOnMissingBean
+    @ConditionalOnMissingBean(S3ClientProvider.class)
     public KnoluxS3ClientFactory knoluxS3ClientFactory(KnoluxS3Properties props) {
         return new KnoluxS3ClientFactory(KnoluxS3ConnectionDetails.of(props));
     }
 
     @Bean
     @ConditionalOnMissingBean
-    public KnoluxS3Template knoluxS3Template(KnoluxS3ClientFactory clientFactory) {
-        return new KnoluxS3Template(clientFactory);
+    public KnoluxS3Template knoluxS3Template(S3ClientProvider clientProvider) {
+        return new KnoluxS3Template(clientProvider);
     }
 }

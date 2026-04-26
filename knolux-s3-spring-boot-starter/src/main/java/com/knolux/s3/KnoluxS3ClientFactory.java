@@ -35,17 +35,18 @@ import java.util.concurrent.ConcurrentHashMap;
  * </ul>
  *
  * <h2>生命週期</h2>
- * <p>本類別實作 {@link AutoCloseable}，Spring 容器關閉時透過
- * {@code @Bean(destroyMethod = "close")} 自動呼叫 {@link #close()}，
+ * <p>本類別實作 {@link S3ClientProvider}（{@link AutoCloseable} 的子介面），
+ * Spring 容器關閉時透過 {@code @Bean(destroyMethod = "close")} 自動呼叫 {@link #close()}，
  * 依序釋放 S3AsyncClient 再釋放 Netty HTTP client。
  * 注意：{@link #close()} 不等待進行中的非同步 I/O 完成；
  * 呼叫方應在關閉前確認所有 {@link java.util.concurrent.CompletableFuture} 已完成或取消。
  *
+ * @see S3ClientProvider
  * @see KnoluxS3Template
  * @see KnoluxNoPathPrefixSigner
  */
 @Slf4j
-public class KnoluxS3ClientFactory implements AutoCloseable {
+public class KnoluxS3ClientFactory implements S3ClientProvider {
 
     private final KnoluxS3ConnectionDetails defaultDetails;
     private final Map<String, S3AsyncClient> clientCache = new ConcurrentHashMap<>();
@@ -111,7 +112,7 @@ public class KnoluxS3ClientFactory implements AutoCloseable {
 
             // endpoint 為空時使用 AWS SDK 預設端點（標準 AWS S3 場景）。
             // Nginx 代理場景：pathPrefix 附加至 endpoint，讓 SDK 建出含前綴的完整 URL，
-            // 使 Nginx 可正確 route；KnoluxNoPathPrefixSigner 在計算簽章時移除前綴。
+        // 使 Nginx 可正確 route；KnoluxNoPathPrefixSigner 在計算簽章時移除前綴。
             if (d.endpoint() != null && !d.endpoint().isBlank()) {
                 String effectiveEndpoint = d.removePathPrefix() && !d.pathPrefix().isBlank()
                         ? d.endpoint() + d.pathPrefix()
