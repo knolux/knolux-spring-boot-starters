@@ -40,4 +40,9 @@ out/
 logs_*/
 .env
 .env.local
+
+### Claude / AI workspace ###
 .claude/
+.remember/
+CLAUDE.md
+docs/superpowers/

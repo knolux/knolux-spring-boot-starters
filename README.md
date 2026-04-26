@@ -72,8 +72,10 @@ knolux:
 ```
 
 ```java
-@Autowired StringRedisTemplate redis;
-@Autowired RedisTemplate<String, Object> redisTemplate;
+@Autowired 
+StringRedisTemplate redis;
+@Autowired 
+RedisTemplate<String, Object> redisTemplate;
 
 redis.opsForValue().set("key", "value");
 ```
@@ -106,7 +108,8 @@ spring:
 ```
 
 ```java
-@Autowired KnoluxS3Template s3Template;
+@Autowired 
+KnoluxS3Template s3Template;
 
 // 靜態模式
 s3Template.upload("bucket", "key", AsyncRequestBody.fromString("hi")).join();
