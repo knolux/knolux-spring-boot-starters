@@ -1,6 +1,7 @@
 package com.knolux.redis;
 
 import io.lettuce.core.ReadFrom;
+import lombok.extern.slf4j.Slf4j;
 
 import java.net.URI;
 
@@ -10,6 +11,7 @@ import java.net.URI;
  * <p>各方法可獨立進行單元測試，URL 格式變動（如支援 IPv6、百分號編碼密碼）
  * 僅需修改此類別，不影響設定類別。
  */
+@Slf4j
 public final class RedisUriUtils {
 
     private RedisUriUtils() {}
@@ -51,10 +53,14 @@ public final class RedisUriUtils {
      */
     public static ReadFrom parseReadFrom(String readFrom) {
         return switch (readFrom.toUpperCase()) {
-            case "REPLICA" -> ReadFrom.REPLICA;
-            case "ANY"     -> ReadFrom.ANY;
-            case "MASTER"  -> ReadFrom.MASTER;
-            default        -> ReadFrom.REPLICA_PREFERRED;
+            case "REPLICA"           -> ReadFrom.REPLICA;
+            case "ANY"               -> ReadFrom.ANY;
+            case "MASTER"            -> ReadFrom.MASTER;
+            case "REPLICA_PREFERRED" -> ReadFrom.REPLICA_PREFERRED;
+            default -> {
+                log.warn("未知的 readFrom 策略 '{}'，退回使用 REPLICA_PREFERRED。有效值：MASTER, REPLICA, REPLICA_PREFERRED, ANY", readFrom);
+                yield ReadFrom.REPLICA_PREFERRED;
+            }
         };
     }
 }
