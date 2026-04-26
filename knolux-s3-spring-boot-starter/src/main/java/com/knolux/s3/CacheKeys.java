@@ -13,7 +13,8 @@ import java.util.HexFormat;
  */
 final class CacheKeys {
 
-    private CacheKeys() {}
+    private CacheKeys() {
+    }
 
     /**
      * 計算字串的 SHA-256 摘要並以十六進位字串回傳。

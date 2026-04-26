@@ -152,8 +152,10 @@ class KnoluxS3AutoConfigurationTest {
             public software.amazon.awssdk.services.s3.S3AsyncClient getClient(KnoluxS3ConnectionDetails details) {
                 return null;
             }
+
             @Override
-            public void close() {}
+            public void close() {
+            }
         };
 
         runner.withBean("customProvider", S3ClientProvider.class, () -> mockProvider)

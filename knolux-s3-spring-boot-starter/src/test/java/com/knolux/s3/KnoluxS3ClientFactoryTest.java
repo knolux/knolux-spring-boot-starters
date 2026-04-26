@@ -17,6 +17,22 @@ class KnoluxS3ClientFactoryTest {
 
     private KnoluxS3ClientFactory factory;
 
+    private static KnoluxS3ConnectionDetails details(String accessKey, String secretKey) {
+        return new KnoluxS3ConnectionDetails(
+                "http://fake-s3.test:9000", "us-east-1", accessKey, secretKey,
+                true, false, "", false
+        );
+    }
+
+    // ── 前置驗證：null 憑證 ──────────────────────────────────────────────────
+
+    private static KnoluxS3ConnectionDetails validDetails(String endpoint) {
+        return new KnoluxS3ConnectionDetails(
+                endpoint, "us-east-1", "fake-access-key", "fake-secret-key",
+                true, false, "", false
+        );
+    }
+
     @AfterEach
     void closeFactory() {
         if (factory != null) {
@@ -24,8 +40,6 @@ class KnoluxS3ClientFactoryTest {
             factory = null;
         }
     }
-
-    // ── 前置驗證：null 憑證 ──────────────────────────────────────────────────
 
     @Test
     void getClient_withNullAccessKey_shouldThrowIllegalState() {
@@ -36,6 +50,8 @@ class KnoluxS3ClientFactoryTest {
                 .hasMessageContaining("accessKey")
                 .hasMessageContaining("mergeDefaults");
     }
+
+    // ── 快取行為 ─────────────────────────────────────────────────────────────
 
     @Test
     void getClient_withNullSecretKey_shouldThrowIllegalState() {
@@ -53,8 +69,6 @@ class KnoluxS3ClientFactoryTest {
         assertThatThrownBy(() -> factory.getClient())
                 .isInstanceOf(IllegalStateException.class);
     }
-
-    // ── 快取行為 ─────────────────────────────────────────────────────────────
 
     @Test
     void getClient_withNull_shouldUseDefaultDetails() {
@@ -83,6 +97,8 @@ class KnoluxS3ClientFactoryTest {
         assertThat(first).isSameAs(second);
     }
 
+    // ── 生命週期 ─────────────────────────────────────────────────────────────
+
     @Test
     void getClient_withDifferentEndpoints_shouldReturnDifferentInstances() {
         factory = new KnoluxS3ClientFactory(validDetails("http://host-a.test:9000"));
@@ -104,14 +120,14 @@ class KnoluxS3ClientFactoryTest {
         assertThat(factory.getClient(detailsEast)).isNotSameAs(factory.getClient(detailsWest));
     }
 
-    // ── 生命週期 ─────────────────────────────────────────────────────────────
-
     @Test
     void close_onEmptyFactory_shouldNotThrow() {
         factory = new KnoluxS3ClientFactory(validDetails("http://fake-s3.test:9000"));
         factory.close();
         factory = null; // 避免 @AfterEach 重複呼叫
     }
+
+    // ── forcePathStyle ────────────────────────────────────────────────────────
 
     @Test
     void close_afterBuildingClients_shouldNotThrow() {
@@ -128,8 +144,6 @@ class KnoluxS3ClientFactoryTest {
         factory.close(); // 第二次不應拋出
         factory = null;
     }
-
-    // ── forcePathStyle ────────────────────────────────────────────────────────
 
     @Test
     void getClient_withForcePathStyleFalse_shouldBuildSuccessfully() {
@@ -151,6 +165,8 @@ class KnoluxS3ClientFactoryTest {
 
         assertThat(factory.getClient()).isNotNull();
     }
+
+    // ── 工具方法 ─────────────────────────────────────────────────────────────
 
     @Test
     void getClient_withRemovePathPrefix_shouldBuildSuccessfully() {
@@ -174,21 +190,5 @@ class KnoluxS3ClientFactoryTest {
                 "http://fake-s3.test:9000", "us-east-1", "k", "s", true, true, "/prefix-b", false);
 
         assertThat(factory.getClient(detailsA)).isNotSameAs(factory.getClient(detailsB));
-    }
-
-    // ── 工具方法 ─────────────────────────────────────────────────────────────
-
-    private static KnoluxS3ConnectionDetails details(String accessKey, String secretKey) {
-        return new KnoluxS3ConnectionDetails(
-                "http://fake-s3.test:9000", "us-east-1", accessKey, secretKey,
-                true, false, "", false
-        );
-    }
-
-    private static KnoluxS3ConnectionDetails validDetails(String endpoint) {
-        return new KnoluxS3ConnectionDetails(
-                endpoint, "us-east-1", "fake-access-key", "fake-secret-key",
-                true, false, "", false
-        );
     }
 }

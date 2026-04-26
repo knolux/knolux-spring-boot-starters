@@ -99,7 +99,8 @@ knolux:
 
 ## Virtual Thread 整合
 
-啟用 Java 25 Virtual Thread 後，`KnoluxS3Template` 的 `CompletableFuture` 完成回呼會於 VT 上執行，可在大量並行 S3 操作下顯著提升執行緒利用率：
+啟用 Java 25 Virtual Thread 後，`KnoluxS3Template` 的 `CompletableFuture` 完成回呼會於 VT 上執行，可在大量並行 S3
+操作下顯著提升執行緒利用率：
 
 ```yaml
 spring:
@@ -108,7 +109,8 @@ spring:
       enabled: true
 ```
 
-實作機制：Auto-Configuration 偵測此屬性後注册 `knoluxS3Executor` Bean（`Executors.newVirtualThreadPerTaskExecutor()`），由 `KnoluxS3Template` 透過 `whenCompleteAsync(..., executor)` 使用。容器關閉時 executor 會自動 close 釋放資源。
+實作機制：Auto-Configuration 偵測此屬性後注册 `knoluxS3Executor` Bean（`Executors.newVirtualThreadPerTaskExecutor()`），由
+`KnoluxS3Template` 透過 `whenCompleteAsync(..., executor)` 使用。容器關閉時 executor 會自動 close 釋放資源。
 
 未啟用時退回 `ForkJoinPool.commonPool()`。
 
@@ -180,25 +182,27 @@ KnoluxS3ConnectionDetails conn = new KnoluxS3ConnectionDetails(
         accessKey, secretKey,
         true, false, "", false
 );
-s3Template.upload("bucket", "path/to/file.txt", AsyncRequestBody.fromString("content"), conn);
+s3Template.
+
+upload("bucket","path/to/file.txt",AsyncRequestBody.fromString("content"),conn);
 ```
 
 ---
 
 ## 設定參數一覽
 
-| 參數 | 預設值 | 說明 |
-|------|--------|------|
-| `knolux.s3.endpoint` | `null` | S3 端點 URL；留空使用 AWS 官方端點 |
-| `knolux.s3.region` | `ap-northeast-1` | AWS Region |
-| `knolux.s3.bucket` | `null` | 預設 Bucket |
-| `knolux.s3.access-key` | `null` | S3 Access Key（SeaweedFS 稱 Secret ID） |
-| `knolux.s3.secret-key` | `null` | S3 Secret Key |
-| `knolux.s3.force-path-style` | `true` | `true` 使用 Path Style（相容 SeaweedFS / MinIO） |
-| `knolux.s3.remove-path-prefix` | `false` | 簽章前移除路徑前綴（Nginx 代理場景） |
-| `knolux.s3.path-prefix` | `""` | 要移除的前綴，例如 `/cluster/s3` |
-| `knolux.s3.trust-self-signed` | `false` | 信任自簽 TLS 憑證（停用憑證鏈驗證） |
-| `spring.threads.virtual.enabled` | `false` | 啟用 Virtual Thread executor 供 CompletableFuture 回呼使用 |
+| 參數                               | 預設值              | 說明                                                  |
+|----------------------------------|------------------|-----------------------------------------------------|
+| `knolux.s3.endpoint`             | `null`           | S3 端點 URL；留空使用 AWS 官方端點                             |
+| `knolux.s3.region`               | `ap-northeast-1` | AWS Region                                          |
+| `knolux.s3.bucket`               | `null`           | 預設 Bucket                                           |
+| `knolux.s3.access-key`           | `null`           | S3 Access Key（SeaweedFS 稱 Secret ID）                |
+| `knolux.s3.secret-key`           | `null`           | S3 Secret Key                                       |
+| `knolux.s3.force-path-style`     | `true`           | `true` 使用 Path Style（相容 SeaweedFS / MinIO）          |
+| `knolux.s3.remove-path-prefix`   | `false`          | 簽章前移除路徑前綴（Nginx 代理場景）                               |
+| `knolux.s3.path-prefix`          | `""`             | 要移除的前綴，例如 `/cluster/s3`                             |
+| `knolux.s3.trust-self-signed`    | `false`          | 信任自簽 TLS 憑證（停用憑證鏈驗證）                                |
+| `spring.threads.virtual.enabled` | `false`          | 啟用 Virtual Thread executor 供 CompletableFuture 回呼使用 |
 
 ---
 
@@ -288,16 +292,16 @@ public class CustomS3Config {
 ./gradlew :knolux-s3-spring-boot-starter:test
 ```
 
-| 測試類別 | 涵蓋範圍 |
-|---|---|
-| `KnoluxS3PropertiesTest` | 設定參數綁定 |
-| `KnoluxS3AutoConfigurationTest` | Auto-Configuration 邏輯、Bean 覆寫、VT 偵測 |
-| `KnoluxS3OperationSpecTest` | 動態模式 builder + mergeDefaults 行為 |
-| `KnoluxS3ConnectionDetailsTest` | 不可變值物件 + cache key 行為 |
-| `KnoluxS3ClientFactoryTest` | Client 快取與資源回收 |
-| `S3HttpClientFactoryTest` | Netty HTTP client 建立（含 trustSelfSigned）|
-| `KnoluxNoPathPrefixSignerTest` | Nginx 代理路徑前綴移除簽章 |
-| `KnoluxS3IntegrationTest` | 端對端 S3 操作（Testcontainers）|
+| 測試類別                            | 涵蓋範圍                                    |
+|---------------------------------|-----------------------------------------|
+| `KnoluxS3PropertiesTest`        | 設定參數綁定                                  |
+| `KnoluxS3AutoConfigurationTest` | Auto-Configuration 邏輯、Bean 覆寫、VT 偵測     |
+| `KnoluxS3OperationSpecTest`     | 動態模式 builder + mergeDefaults 行為         |
+| `KnoluxS3ConnectionDetailsTest` | 不可變值物件 + cache key 行為                   |
+| `KnoluxS3ClientFactoryTest`     | Client 快取與資源回收                          |
+| `S3HttpClientFactoryTest`       | Netty HTTP client 建立（含 trustSelfSigned） |
+| `KnoluxNoPathPrefixSignerTest`  | Nginx 代理路徑前綴移除簽章                        |
+| `KnoluxS3IntegrationTest`       | 端對端 S3 操作（Testcontainers）               |
 
 整合測試 (`*IntegrationTest`) 需要 Docker；未啟動時自動跳過。
 

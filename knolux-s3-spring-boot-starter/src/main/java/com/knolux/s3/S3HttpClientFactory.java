@@ -32,7 +32,8 @@ import java.time.Duration;
 @Slf4j
 final class S3HttpClientFactory {
 
-    private S3HttpClientFactory() {}
+    private S3HttpClientFactory() {
+    }
 
     /**
      * 依連線參數建立 Netty 非同步 HTTP client。
@@ -48,7 +49,7 @@ final class S3HttpClientFactory {
 
         if (details.trustSelfSigned()) {
             log.warn("[安全警告] trustSelfSigned=true：TLS 憑證驗證已停用（含 hostname 驗證），" +
-                     "僅限非正式環境使用！endpoint={}", details.endpoint());
+                    "僅限非正式環境使用！endpoint={}", details.endpoint());
             return builder.buildWithDefaults(
                     AttributeMap.builder()
                             .put(SdkHttpConfigurationOption.TRUST_ALL_CERTIFICATES, Boolean.TRUE)

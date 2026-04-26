@@ -8,10 +8,10 @@
 
 ## 模組總覽
 
-| 模組 | Artifact | 說明 |
-|---|---|---|
-| [knolux-redis-spring-boot-starter](./knolux-redis-spring-boot-starter/README.md) | `com.knolux:knolux-redis-spring-boot-starter` | Redis Starter — 透過 URL scheme 自動切換 Standalone / Sentinel 模式（Lettuce 客戶端） |
-| [knolux-s3-spring-boot-starter](./knolux-s3-spring-boot-starter/README.md) | `com.knolux:knolux-s3-spring-boot-starter` | S3 Starter — AWS SDK v2 非同步 client，支援 SeaweedFS / MinIO / Nginx 反向代理（路徑前綴移除） |
+| 模組                                                                               | Artifact                                      | 說明                                                                           |
+|----------------------------------------------------------------------------------|-----------------------------------------------|------------------------------------------------------------------------------|
+| [knolux-redis-spring-boot-starter](./knolux-redis-spring-boot-starter/README.md) | `com.knolux:knolux-redis-spring-boot-starter` | Redis Starter — 透過 URL scheme 自動切換 Standalone / Sentinel 模式（Lettuce 客戶端）     |
+| [knolux-s3-spring-boot-starter](./knolux-s3-spring-boot-starter/README.md)       | `com.knolux:knolux-s3-spring-boot-starter`    | S3 Starter — AWS SDK v2 非同步 client，支援 SeaweedFS / MinIO / Nginx 反向代理（路徑前綴移除） |
 
 ---
 
@@ -72,12 +72,17 @@ knolux:
 ```
 
 ```java
-@Autowired 
+
+@Autowired
 StringRedisTemplate redis;
-@Autowired 
+@Autowired
 RedisTemplate<String, Object> redisTemplate;
 
-redis.opsForValue().set("key", "value");
+redis.
+
+opsForValue().
+
+set("key","value");
 ```
 
 ### Redis（Sentinel）
@@ -108,11 +113,16 @@ spring:
 ```
 
 ```java
-@Autowired 
+
+@Autowired
 KnoluxS3Template s3Template;
 
 // 靜態模式
-s3Template.upload("bucket", "key", AsyncRequestBody.fromString("hi")).join();
+s3Template.
+
+upload("bucket","key",AsyncRequestBody.fromString("hi")).
+
+join();
 
 // 動態模式（從 payload 組裝）
 KnoluxS3OperationSpec spec = KnoluxS3OperationSpec.builder()
@@ -142,7 +152,8 @@ byte[] content = s3Template.download(spec, AsyncResponseTransformer.toBytes())
 
 ### Virtual Thread 整合
 
-`spring.threads.virtual.enabled=true` 時，`KnoluxS3Template` 的 `CompletableFuture` 完成回呼自動於 Java 25 Virtual Thread 上執行，提升大量並行 S3 操作的執行緒利用率。
+`spring.threads.virtual.enabled=true` 時，`KnoluxS3Template` 的 `CompletableFuture` 完成回呼自動於 Java 25 Virtual Thread
+上執行，提升大量並行 S3 操作的執行緒利用率。
 
 ### Bean 覆寫機制
 
@@ -201,6 +212,7 @@ git push origin knolux-redis-spring-boot-starter/v1.0.1
 ```
 
 CI 工作流程：
+
 1. **CI**（push / PR）— 執行 `./gradlew test --continue`，PR 為唯讀快取模式
 2. **Publish**（tag 推送）— 對指定模組執行測試並發布至 GitHub Packages
 3. **Javadoc**（tag 推送）— 產生 Javadoc 並部署至 `gh-pages` 分支

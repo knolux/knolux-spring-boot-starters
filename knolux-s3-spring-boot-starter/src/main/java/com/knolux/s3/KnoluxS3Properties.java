@@ -51,19 +51,29 @@ import org.springframework.boot.context.properties.ConfigurationProperties;
 @ConfigurationProperties(prefix = "knolux.s3")
 public class KnoluxS3Properties {
 
-    /** S3 相容端點 URL。留空時 SDK 使用 AWS 預設端點（適用標準 AWS S3）。*/
+    /**
+     * S3 相容端點 URL。留空時 SDK 使用 AWS 預設端點（適用標準 AWS S3）。
+     */
     private String endpoint;
 
-    /** AWS Region，預設 {@code ap-northeast-1}。SeaweedFS / MinIO 不驗證此值。*/
+    /**
+     * AWS Region，預設 {@code ap-northeast-1}。SeaweedFS / MinIO 不驗證此值。
+     */
     private String region = "ap-northeast-1";
 
-    /** 預設 Bucket 名稱，可被 {@link KnoluxS3OperationSpec#getBucket()} 覆寫。*/
+    /**
+     * 預設 Bucket 名稱，可被 {@link KnoluxS3OperationSpec#getBucket()} 覆寫。
+     */
     private String bucket;
 
-    /** S3 Access Key（SeaweedFS 稱為 Secret ID）。*/
+    /**
+     * S3 Access Key（SeaweedFS 稱為 Secret ID）。
+     */
     private String accessKey;
 
-    /** S3 Secret Key。*/
+    /**
+     * S3 Secret Key。
+     */
     private String secretKey;
 
     /**

@@ -19,20 +19,29 @@ class SentinelConnectionFactoryBuilderTest {
         return p;
     }
 
-    @Test void supports_sentinel_scheme() {
+    @Test
+    void supports_sentinel_scheme() {
         assertThat(builder.supports(URI.create("redis-sentinel://host:26379/master"))).isTrue();
     }
-    @Test void does_not_support_redis_scheme() {
+
+    @Test
+    void does_not_support_redis_scheme() {
         assertThat(builder.supports(URI.create("redis://localhost:6379"))).isFalse();
     }
-    @Test void builds_factory_with_master_name() {
+
+    @Test
+    void builds_factory_with_master_name() {
         assertThat(builder.build(URI.create("redis-sentinel://:pass@host:26379/mymaster"), props())).isNotNull();
     }
-    @Test void builds_factory_default_sentinel_port_fallback() {
+
+    @Test
+    void builds_factory_default_sentinel_port_fallback() {
         // URI 不含 port，應使用 26379
         assertThat(builder.build(URI.create("redis-sentinel://:pass@host/mymaster"), props())).isNotNull();
     }
-    @Test void throws_when_master_name_is_missing() {
+
+    @Test
+    void throws_when_master_name_is_missing() {
         assertThatIllegalArgumentException()
                 .isThrownBy(() -> builder.build(URI.create("redis-sentinel://host:26379"), props()))
                 .withMessageContaining("master name");

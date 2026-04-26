@@ -1,7 +1,5 @@
 package com.knolux.redis;
 
-import com.knolux.redis.KnoluxRedisAutoConfiguration;
-import com.knolux.redis.KnoluxRedisHealthIndicator;
 import org.junit.jupiter.api.Test;
 import org.springframework.boot.autoconfigure.AutoConfigurations;
 import org.springframework.boot.test.context.runner.ApplicationContextRunner;

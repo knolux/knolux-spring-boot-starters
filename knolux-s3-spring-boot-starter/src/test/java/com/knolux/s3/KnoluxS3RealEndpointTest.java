@@ -29,12 +29,22 @@ class KnoluxS3RealEndpointTest {
     // ── 憑證從環境變數讀取，不寫入 code ───────────────────────────────────────
     private static final String ACCESS_KEY = System.getenv("S3_ACCESS_KEY");
     private static final String SECRET_KEY = System.getenv("S3_SECRET_KEY");
-    private static final String BUCKET     = "test";
-    private static final String CONTENT    = "Hello from KnoluxS3Template!";
+    private static final String BUCKET = "test";
+    private static final String CONTENT = "Hello from KnoluxS3Template!";
     // ──────────────────────────────────────────────────────────────────────────
 
     private KnoluxS3ClientFactory factory;
     private KnoluxS3Template template;
+
+    private static void assumeHostReachable(String hostname) {
+        try {
+            java.net.InetAddress.getByName(hostname);
+        } catch (java.net.UnknownHostException e) {
+            Assumptions.abort("DNS 無法解析 " + hostname + "，此測試需在 K8s 叢集內執行");
+        }
+    }
+
+    // ── 情境一：外部網路 → Nginx 反向代理（正式 CA 憑證，路徑前綴 /cluster/s3）─
 
     @AfterEach
     void closeFactory() {
@@ -44,7 +54,7 @@ class KnoluxS3RealEndpointTest {
         }
     }
 
-    // ── 情境一：外部網路 → Nginx 反向代理（正式 CA 憑證，路徑前綴 /cluster/s3）─
+    // ── 情境二：公司內網 → 自簽署 HTTPS ─────────────────────────────────────
 
     @Test
     void external_nginx_proxy_upload_download_roundTrip() {
@@ -67,7 +77,7 @@ class KnoluxS3RealEndpointTest {
         roundTrip("external-nginx");
     }
 
-    // ── 情境二：公司內網 → 自簽署 HTTPS ─────────────────────────────────────
+    // ── 情境三：K8s 集群內部 → 明文 HTTP ────────────────────────────────────
 
     @Test
     void internal_self_signed_https_upload_download_roundTrip() {
@@ -86,7 +96,7 @@ class KnoluxS3RealEndpointTest {
         roundTrip("internal-self-signed");
     }
 
-    // ── 情境三：K8s 集群內部 → 明文 HTTP ────────────────────────────────────
+    // ── 動態模式（OperationSpec）— 以外部 Nginx 為例 ─────────────────────────
 
     @Test
     void k8s_internal_http_upload_download_roundTrip() {
@@ -108,7 +118,7 @@ class KnoluxS3RealEndpointTest {
         roundTrip("k8s-internal");
     }
 
-    // ── 動態模式（OperationSpec）— 以外部 Nginx 為例 ─────────────────────────
+    // ── 工具方法 ──────────────────────────────────────────────────────────────
 
     @Test
     void external_nginx_proxy_dynamicMode_operationSpec_roundTrip() {
@@ -142,19 +152,9 @@ class KnoluxS3RealEndpointTest {
         template.delete(spec).join();
     }
 
-    // ── 工具方法 ──────────────────────────────────────────────────────────────
-
     private void init(KnoluxS3Properties props) {
         factory = new KnoluxS3ClientFactory(KnoluxS3ConnectionDetails.of(props));
         template = new KnoluxS3Template(factory);
-    }
-
-    private static void assumeHostReachable(String hostname) {
-        try {
-            java.net.InetAddress.getByName(hostname);
-        } catch (java.net.UnknownHostException e) {
-            Assumptions.abort("DNS 無法解析 " + hostname + "，此測試需在 K8s 叢集內執行");
-        }
     }
 
     private void roundTrip(String testPrefix) {

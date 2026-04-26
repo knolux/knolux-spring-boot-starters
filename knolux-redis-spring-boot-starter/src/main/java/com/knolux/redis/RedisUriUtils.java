@@ -14,7 +14,8 @@ import java.net.URI;
 @Slf4j
 public final class RedisUriUtils {
 
-    private RedisUriUtils() {}
+    private RedisUriUtils() {
+    }
 
     /**
      * 從 URI 的 userInfo（格式 {@code [:username]:password}）解析密碼。
@@ -74,10 +75,10 @@ public final class RedisUriUtils {
             return ReadFrom.valueOf(readFrom.trim());
         } catch (IllegalArgumentException ex) {
             log.warn("未知的 readFrom 策略 '{}'，退回使用 REPLICA_PREFERRED。" +
-                     "支援值（不區分大小寫）：MASTER/UPSTREAM、MASTER_PREFERRED/UPSTREAM_PREFERRED、" +
-                     "REPLICA/SLAVE、REPLICA_PREFERRED、LOWEST_LATENCY/NEAREST、" +
-                     "ANY、ANY_REPLICA、subnet:<cidr,...>、regex:<pattern>",
-                     readFrom);
+                            "支援值（不區分大小寫）：MASTER/UPSTREAM、MASTER_PREFERRED/UPSTREAM_PREFERRED、" +
+                            "REPLICA/SLAVE、REPLICA_PREFERRED、LOWEST_LATENCY/NEAREST、" +
+                            "ANY、ANY_REPLICA、subnet:<cidr,...>、regex:<pattern>",
+                    readFrom);
             return ReadFrom.REPLICA_PREFERRED;
         }
     }

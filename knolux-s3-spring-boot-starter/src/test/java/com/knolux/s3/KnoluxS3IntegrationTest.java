@@ -29,8 +29,6 @@ class KnoluxS3IntegrationTest {
 
     private static final String ACCESS_KEY = "minioadmin";
     private static final String SECRET_KEY = "minioadmin";
-    private static final String BUCKET = "integration-test";
-
     @SuppressWarnings("resource")
     static final GenericContainer<?> MINIO =
             new GenericContainer<>("minio/minio")
@@ -39,7 +37,7 @@ class KnoluxS3IntegrationTest {
                     .withCommand("server", "/data", "--console-address", ":9001")
                     .withExposedPorts(9000)
                     .waitingFor(Wait.forHttp("/minio/health/live").forPort(9000));
-
+    private static final String BUCKET = "integration-test";
     static KnoluxS3Properties props;
     static KnoluxS3ClientFactory factory;
     static KnoluxS3Template template;
@@ -63,8 +61,8 @@ class KnoluxS3IntegrationTest {
         template = new KnoluxS3Template(factory);
 
         factory.getClient()
-               .createBucket(CreateBucketRequest.builder().bucket(BUCKET).build())
-               .join();
+                .createBucket(CreateBucketRequest.builder().bucket(BUCKET).build())
+                .join();
     }
 
     @AfterAll

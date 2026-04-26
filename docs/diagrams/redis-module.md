@@ -124,4 +124,6 @@ sequenceDiagram
     Actuator -->> Client: 200 OK { "status": "UP", "details": { "ping": "PONG" } }
 ```
 
-> **注意**：`KnoluxRedisHealthIndicator` 目前使用 `@Component` 註解，在 Spring Boot Starter 函式庫情境中，此元件可能因 component scan 路徑未涵蓋函式庫套件而無法被自動偵測，導致上述健康檢查流程靜默失效。建議改由 `KnoluxRedisAutoConfiguration` 以條件式 `@Bean` 管理此元件。詳見代碼審查報告 R2。
+> **注意**：`KnoluxRedisHealthIndicator` 目前使用 `@Component` 註解，在 Spring Boot Starter 函式庫情境中，此元件可能因
+> component scan 路徑未涵蓋函式庫套件而無法被自動偵測，導致上述健康檢查流程靜默失效。建議改由 `KnoluxRedisAutoConfiguration`
+> 以條件式 `@Bean` 管理此元件。詳見代碼審查報告 R2。

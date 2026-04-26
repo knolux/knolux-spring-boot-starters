@@ -71,10 +71,14 @@ public final class KnoluxS3OperationSpec {
 
     // ── 動態欄位（從 payload 取得，null 表示使用 Properties 預設值）────────────────
 
-    /** S3 相容端點 URL。{@code null} 時使用 Properties 設定或 AWS 預設端點。*/
+    /**
+     * S3 相容端點 URL。{@code null} 時使用 Properties 設定或 AWS 預設端點。
+     */
     private final String endpoint;
 
-    /** AWS Region。{@code null} 時使用 Properties 設定。*/
+    /**
+     * AWS Region。{@code null} 時使用 Properties 設定。
+     */
     private final String region;
 
     /**
@@ -96,24 +100,34 @@ public final class KnoluxS3OperationSpec {
      */
     private final String bucket;
 
-    /** S3 Object Key（物件路徑）。不可為 {@code null} 或空白。*/
+    /**
+     * S3 Object Key（物件路徑）。不可為 {@code null} 或空白。
+     */
     private final String key;
 
     // ── 部署級別設定（由 mergeDefaults 從 Properties 覆寫，不可由 payload 控制）───
 
-    /** 是否強制 Path Style 定址，{@link Builder} 預設 {@code true}。*/
+    /**
+     * 是否強制 Path Style 定址，{@link Builder} 預設 {@code true}。
+     */
     @Builder.Default
     private final boolean forcePathStyle = true;
 
-    /** 是否移除路徑前綴再計算簽章（Nginx 代理場景），{@link Builder} 預設 {@code false}。*/
+    /**
+     * 是否移除路徑前綴再計算簽章（Nginx 代理場景），{@link Builder} 預設 {@code false}。
+     */
     @Builder.Default
     private final boolean removePathPrefix = false;
 
-    /** 要移除的路徑前綴，{@code removePathPrefix=true} 時生效。*/
+    /**
+     * 要移除的路徑前綴，{@code removePathPrefix=true} 時生效。
+     */
     @Builder.Default
     private final String pathPrefix = "";
 
-    /** 是否信任自簽 TLS 憑證，{@link Builder} 預設 {@code false}。*/
+    /**
+     * 是否信任自簽 TLS 憑證，{@link Builder} 預設 {@code false}。
+     */
     @Builder.Default
     private final boolean trustSelfSigned = false;
 
