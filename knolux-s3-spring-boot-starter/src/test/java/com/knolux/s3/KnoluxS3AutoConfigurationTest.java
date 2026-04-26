@@ -165,4 +165,30 @@ class KnoluxS3AutoConfigurationTest {
                     assertThat(ctx).hasSingleBean(KnoluxS3Template.class);
                 });
     }
+
+    // ── Virtual Thread Executor ───────────────────────────────────────────────
+
+    @Test
+    void withVirtualThreadsEnabled_shouldCreateVtExecutor() {
+        new ApplicationContextRunner()
+                .withConfiguration(AutoConfigurations.of(KnoluxS3AutoConfiguration.class))
+                .withPropertyValues(
+                        "knolux.s3.endpoint=http://fake-s3:9000",
+                        "knolux.s3.access-key=k",
+                        "knolux.s3.secret-key=s",
+                        "spring.threads.virtual.enabled=true"
+                )
+                .run(ctx -> {
+                    assertThat(ctx).hasBean("knoluxS3Executor");
+                    assertThat(ctx).hasSingleBean(KnoluxS3Template.class);
+                });
+    }
+
+    @Test
+    void withoutVirtualThreads_shouldUseCommonPoolExecutor() {
+        runner.run(ctx -> {
+            assertThat(ctx).hasBean("knoluxS3Executor");
+            assertThat(ctx).hasSingleBean(KnoluxS3Template.class);
+        });
+    }
 }

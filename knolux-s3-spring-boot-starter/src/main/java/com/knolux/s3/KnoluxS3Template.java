@@ -1,6 +1,5 @@
 package com.knolux.s3;
 
-import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import software.amazon.awssdk.core.async.AsyncRequestBody;
 import software.amazon.awssdk.core.async.AsyncResponseTransformer;
@@ -12,6 +11,8 @@ import software.amazon.awssdk.services.s3.model.PutObjectRequest;
 import software.amazon.awssdk.services.s3.model.PutObjectResponse;
 
 import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.Executor;
+import java.util.concurrent.ForkJoinPool;
 
 /**
  * S3 非同步操作模板，封裝 Upload、Download、Delete。
@@ -50,10 +51,30 @@ import java.util.concurrent.CompletableFuture;
  * @see S3ClientProvider
  */
 @Slf4j
-@RequiredArgsConstructor
 public class KnoluxS3Template {
 
     private final S3ClientProvider clientProvider;
+    private final Executor continuationExecutor;
+
+    /**
+     * 完整建構子。
+     *
+     * @param clientProvider       S3 client 提供者
+     * @param continuationExecutor 用於執行 {@link CompletableFuture#whenCompleteAsync} 回呼的 Executor
+     */
+    public KnoluxS3Template(S3ClientProvider clientProvider, Executor continuationExecutor) {
+        this.clientProvider = clientProvider;
+        this.continuationExecutor = continuationExecutor;
+    }
+
+    /**
+     * 向下兼容建構子，使用 {@link ForkJoinPool#commonPool()} 作為預設 executor。
+     *
+     * @param clientProvider S3 client 提供者
+     */
+    public KnoluxS3Template(S3ClientProvider clientProvider) {
+        this(clientProvider, ForkJoinPool.commonPool());
+    }
 
     // ── 靜態模式（Properties 預設連線）──────────────────────────────────────────
 
@@ -98,10 +119,10 @@ public class KnoluxS3Template {
         var request = PutObjectRequest.builder().bucket(bucket).key(key).build();
         return clientProvider.getClient(conn)
                 .putObject(request, body)
-                .whenComplete((_, err) -> {
+                .whenCompleteAsync((_, err) -> {
                     if (err != null) log.error("上傳失敗: bucket={}, key={}", bucket, key, err);
                     else log.debug("上傳成功: bucket={}, key={}", bucket, key);
-                });
+                }, continuationExecutor);
     }
 
     public <T> CompletableFuture<T> download(
@@ -112,10 +133,10 @@ public class KnoluxS3Template {
         var request = GetObjectRequest.builder().bucket(bucket).key(key).build();
         return clientProvider.getClient(conn)
                 .getObject(request, transformer)
-                .whenComplete((_, err) -> {
+                .whenCompleteAsync((_, err) -> {
                     if (err != null) log.error("下載失敗: bucket={}, key={}", bucket, key, err);
                     else log.debug("下載成功: bucket={}, key={}", bucket, key);
-                });
+                }, continuationExecutor);
     }
 
     public CompletableFuture<DeleteObjectResponse> delete(
@@ -125,9 +146,9 @@ public class KnoluxS3Template {
         var request = DeleteObjectRequest.builder().bucket(bucket).key(key).build();
         return clientProvider.getClient(conn)
                 .deleteObject(request)
-                .whenComplete((_, err) -> {
+                .whenCompleteAsync((_, err) -> {
                     if (err != null) log.error("刪除失敗: bucket={}, key={}", bucket, key, err);
                     else log.debug("刪除成功: bucket={}, key={}", bucket, key);
-                });
+                }, continuationExecutor);
     }
 }
