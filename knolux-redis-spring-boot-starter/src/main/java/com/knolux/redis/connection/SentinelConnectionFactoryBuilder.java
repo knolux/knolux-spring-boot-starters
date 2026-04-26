@@ -23,7 +23,11 @@ public class SentinelConnectionFactoryBuilder implements LettuceConnectionFactor
 
     @Override
     public LettuceConnectionFactory build(URI uri, KnoluxRedisProperties properties) {
-        String masterName = uri.getPath().replaceFirst("^/", "");
+        String masterName = uri.getPath() == null ? "" : uri.getPath().replaceFirst("^/", "");
+        if (masterName.isBlank()) {
+            throw new IllegalArgumentException(
+                    "Sentinel URI 必須包含 master name，例如：redis-sentinel://host:26379/mymaster");
+        }
         String password = RedisUriUtils.parsePassword(uri);
         String host = uri.getHost();
         int port = uri.getPort() > 0 ? uri.getPort() : 26379;

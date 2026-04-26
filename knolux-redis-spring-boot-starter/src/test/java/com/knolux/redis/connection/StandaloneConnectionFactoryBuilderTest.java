@@ -36,4 +36,10 @@ class StandaloneConnectionFactoryBuilderTest {
     @Test void builds_factory_without_password() {
         assertThat(builder.build(URI.create("redis://localhost:6379"), props("MASTER"))).isNotNull();
     }
+    @Test void builds_factory_with_password() {
+        assertThat(builder.build(URI.create("redis://:secret@localhost:6379"), props("MASTER"))).isNotNull();
+    }
+    @Test void builds_factory_with_replica_preferred_read_from() {
+        assertThat(builder.build(URI.create("redis://localhost:6379"), props("REPLICA_PREFERRED"))).isNotNull();
+    }
 }

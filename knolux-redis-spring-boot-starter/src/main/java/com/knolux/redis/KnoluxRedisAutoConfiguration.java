@@ -56,7 +56,7 @@ import java.util.List;
  * @see KnoluxRedisHealthIndicator
  */
 @AutoConfiguration
-@EnableConfigurationProperties(KnoluxRedisProperties.class)
+@EnableConfigurationProperties(value = KnoluxRedisProperties.class)
 public class KnoluxRedisAutoConfiguration {
 
     private static final List<LettuceConnectionFactoryBuilder> BUILDERS = List.of(

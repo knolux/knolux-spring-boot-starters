@@ -7,6 +7,7 @@ import java.net.URI;
 import java.time.Duration;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatIllegalArgumentException;
 
 class SentinelConnectionFactoryBuilderTest {
     private final SentinelConnectionFactoryBuilder builder = new SentinelConnectionFactoryBuilder();
@@ -30,5 +31,10 @@ class SentinelConnectionFactoryBuilderTest {
     @Test void builds_factory_default_sentinel_port_fallback() {
         // URI 不含 port，應使用 26379
         assertThat(builder.build(URI.create("redis-sentinel://:pass@host/mymaster"), props())).isNotNull();
+    }
+    @Test void throws_when_master_name_is_missing() {
+        assertThatIllegalArgumentException()
+                .isThrownBy(() -> builder.build(URI.create("redis-sentinel://host:26379"), props()))
+                .withMessageContaining("master name");
     }
 }

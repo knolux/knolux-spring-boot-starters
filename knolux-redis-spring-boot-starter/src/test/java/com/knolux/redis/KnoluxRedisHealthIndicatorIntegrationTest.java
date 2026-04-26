@@ -1,5 +1,6 @@
 package com.knolux.redis;
 
+import com.knolux.redis.KnoluxRedisAutoConfiguration;
 import com.redis.testcontainers.RedisContainer;
 import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.Assumptions;
