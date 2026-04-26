@@ -4,15 +4,11 @@ import lombok.extern.slf4j.Slf4j;
 import software.amazon.awssdk.auth.credentials.AwsBasicCredentials;
 import software.amazon.awssdk.auth.credentials.StaticCredentialsProvider;
 import software.amazon.awssdk.core.client.config.SdkAdvancedClientOption;
-import software.amazon.awssdk.http.SdkHttpConfigurationOption;
 import software.amazon.awssdk.http.async.SdkAsyncHttpClient;
-import software.amazon.awssdk.http.nio.netty.NettyNioAsyncHttpClient;
 import software.amazon.awssdk.regions.Region;
 import software.amazon.awssdk.services.s3.S3AsyncClient;
-import software.amazon.awssdk.utils.AttributeMap;
 
 import java.net.URI;
-import java.time.Duration;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 
@@ -96,7 +92,7 @@ public class KnoluxS3ClientFactory implements S3ClientProvider {
                     "accessKey / secretKey 為 null，動態模式請確認已呼叫 KnoluxS3OperationSpec.mergeDefaults()");
         }
 
-        SdkAsyncHttpClient httpClient = buildHttpClient(d);
+        SdkAsyncHttpClient httpClient = S3HttpClientFactory.build(d);
 
         // HTTP client 先放入 cache，確保 close() 可完整回收。
         // 若 S3AsyncClient 建立失敗，從 cache 移除並立即關閉，防止洩漏。
@@ -140,31 +136,6 @@ public class KnoluxS3ClientFactory implements S3ClientProvider {
             httpClient.close();
             throw e;
         }
-    }
-
-    /**
-     * 依 {@link KnoluxS3ConnectionDetails#trustSelfSigned()} 建立 Netty HTTP client。
-     *
-     * <p>{@code trustSelfSigned=true} 時使用 {@link SdkHttpConfigurationOption#TRUST_ALL_CERTIFICATES}
-     * 停用 TLS 憑證鏈與 hostname 驗證。此模式會在啟動時印出 WARN 日誌，
-     * 僅適用於開發或內部測試環境。
-     */
-    private SdkAsyncHttpClient buildHttpClient(KnoluxS3ConnectionDetails d) {
-        var builder = NettyNioAsyncHttpClient.builder()
-                .maxConcurrency(20)
-                .connectionTimeout(Duration.ofSeconds(5))
-                .readTimeout(Duration.ofSeconds(30));
-
-        if (d.trustSelfSigned()) {
-            log.warn("[安全警告] trustSelfSigned=true：TLS 憑證驗證已停用（含 hostname 驗證），" +
-                     "僅限非正式環境使用！endpoint={}", d.endpoint());
-            return builder.buildWithDefaults(
-                    AttributeMap.builder()
-                            .put(SdkHttpConfigurationOption.TRUST_ALL_CERTIFICATES, Boolean.TRUE)
-                            .build()
-            );
-        }
-        return builder.build();
     }
 
     /**
