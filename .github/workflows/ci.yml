@@ -40,7 +40,7 @@ jobs:
 
       - name: Upload test report on failure
         if: failure()
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: test-report-java${{ matrix.java }}
           path: '**/build/reports/tests/test/'
@@ -48,7 +48,7 @@ jobs:
 
       - name: Upload test results (JUnit XML)
         if: always()
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: junit-xml-java${{ matrix.java }}
           path: '**/build/test-results/test/*.xml'
