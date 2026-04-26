@@ -60,7 +60,7 @@ public class KnoluxS3AutoConfiguration {
      * @param env Spring Environment（讀取 spring.threads.virtual.enabled 屬性）
      * @return Virtual Thread executor 或 common pool
      */
-    @Bean(name = "knoluxS3Executor")
+    @Bean(name = "knoluxS3Executor", destroyMethod = "close")
     @ConditionalOnMissingBean(name = "knoluxS3Executor")
     public Executor knoluxS3Executor(Environment env) {
         boolean vtEnabled = env.getProperty("spring.threads.virtual.enabled", Boolean.class, false);
