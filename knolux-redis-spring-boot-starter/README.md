@@ -2,21 +2,24 @@
 
 Spring Boot Starter，透過單一 `REDIS_URL` 環境變數支援 **Sentinel（高可用）** 與 **Standalone** 兩種連線模式。
 
+技術棧：**Java 25 LTS** · **Spring Boot 4.0.5** · **Spring Framework 7** · **Lettuce** · **Virtual Thread Compatible**
+
 ## 功能特色
 
 - 依 `REDIS_URL` scheme 自動偵測連線模式（`redis://` 或 `redis-sentinel://`）
 - Sentinel 模式 — 自動 Master 探索與故障切換
 - Standalone 模式 — 直接連線（適合本地開發）
 - 可設定讀取策略（`REPLICA_PREFERRED`、`MASTER`、`REPLICA`、`ANY`）
-- 透過 Spring Boot Actuator 提供健康檢查指標
+- 透過 Spring Boot Actuator 提供健康檢查指標（Bean 名稱 `knoluxRedis`）
 - 開發與正式環境之間不需修改任何程式碼
+- **策略模式架構** — 透過 `LettuceConnectionFactoryBuilder` 介面擴充新模式（如 Cluster）無須修改現有程式碼
 
 ---
 
 ## 環境需求
 
-- Java 17+
-- Spring Boot 3.x / 4.x
+- **Java 25 LTS**（Temurin 建議）
+- **Spring Boot 4.0.5+**
 
 ---
 
@@ -85,9 +88,11 @@ knolux:
 | 值                  | 說明                                         |
 |---------------------|----------------------------------------------|
 | `REPLICA_PREFERRED` | 優先讀取 Replica 節點；不可用時改讀 Master   |
-| `MASTER`            | 永遠從 Master 讀取                           |
+| `MASTER`            | 永遠從 Master 讀取（純 Standalone 時不啟動 topology refresh） |
 | `REPLICA`           | 永遠從 Replica 讀取                          |
 | `ANY`               | 讀取任意可用節點                             |
+
+> 設定為未知值會記錄 `WARN` 日誌並回退至 `REPLICA_PREFERRED`。
 
 ---
 
@@ -155,6 +160,46 @@ redis.opsForValue().set("backend-prod:cache:product456", data);
 
 ---
 
+## 架構設計
+
+### 連線工廠策略模式
+
+```
+KnoluxRedisAutoConfiguration
+        │
+        ▼
+[ LettuceConnectionFactoryBuilder ] ← 公開策略介面
+        │
+        ├─ StandaloneConnectionFactoryBuilder  (redis://)
+        └─ SentinelConnectionFactoryBuilder    (redis-sentinel://)
+```
+
+新增連線模式（例如 Redis Cluster）時，只需：
+1. 在 `com.knolux.redis.connection` 套件新增 `ClusterConnectionFactoryBuilder` 實作介面
+2. 將實例加入 `KnoluxRedisAutoConfiguration` 的 `BUILDERS` 清單
+
+不必修改 Auto-Configuration 的核心 Bean 邏輯（符合 OCP 開閉原則）。
+
+### Bean 依賴關係
+
+```
+KnoluxRedisProperties (knolux.redis.*)
+    └─► KnoluxRedisAutoConfiguration
+            ├─► LettuceConnectionFactory (RedisConnectionFactory)
+            ├─► StringRedisTemplate
+            ├─► RedisTemplate<String, Object>
+            └─► KnoluxRedisHealthIndicator [需要 spring-boot-starter-actuator]
+```
+
+詳細時序圖請見 [Redis 模組架構圖](../docs/diagrams/redis-module.md)。
+
+### Virtual Thread 相容性
+
+Lettuce 為非阻塞 reactive 客戶端，本 Starter 完全相容 Java 25 Virtual Thread。
+Health Indicator 同步呼叫 `PING` 時若處於 VT 環境也能正確讓出（park）。
+
+---
+
 ## Kubernetes 部署
 
 ### 建立 Secret
@@ -208,7 +253,7 @@ REDIS_URL=redis://:your-password@redis.example.com:6379
 
 ## 健康檢查
 
-當 `spring-boot-starter-actuator` 存在時，健康端點會自動包含 Redis 狀態：
+當 `spring-boot-starter-actuator` 存在於 classpath 時，健康端點會自動包含 Redis 狀態（Bean 名稱 `knoluxRedis`，於 Auto-Configuration 中以 `@Bean` 顯式注册）：
 
 ```bash
 GET /actuator/health
@@ -238,10 +283,16 @@ GET /actuator/health
 @Configuration
 public class CustomRedisConfig {
 
+    // 覆寫整個連線工廠
     @Bean
     public RedisConnectionFactory redisConnectionFactory() {
-        // 自訂連線配置
         return new LettuceConnectionFactory(...);
+    }
+
+    // 覆寫健康指標（Bean 名稱必須為 knoluxRedis）
+    @Bean(name = "knoluxRedis")
+    public HealthIndicator knoluxRedisHealthIndicator(StringRedisTemplate template) {
+        return () -> Health.up().withDetail("custom", "yes").build();
     }
 }
 ```
@@ -266,14 +317,18 @@ public class CustomRedisConfig {
 ./gradlew :knolux-redis-spring-boot-starter:test
 ```
 
-| 測試類別                                    | 涵蓋範圍                            |
-|---------------------------------------------|-------------------------------------|
-| `KnoluxRedisPropertiesTest`                 | 設定參數綁定                        |
-| `KnoluxRedisAutoConfigurationTest`          | 自動配置邏輯、全模式驗證            |
-| `KnoluxRedisHealthIndicatorTest`            | 健康指標 UP / DOWN                  |
-| `KnoluxRedisStandaloneIntegrationTest`      | Standalone 模式端對端測試（Docker） |
-| `KnoluxRedisSentinelIntegrationTest`        | Sentinel 模式端對端測試（Docker）   |
-| `KnoluxRedisHealthIndicatorIntegrationTest` | 健康指標搭配真實 Redis 測試         |
+| 測試類別                                          | 涵蓋範圍                                |
+|---------------------------------------------------|-----------------------------------------|
+| `KnoluxRedisPropertiesTest`                       | 設定參數綁定                            |
+| `KnoluxRedisAutoConfigurationTest`                | 自動配置邏輯、HealthIndicator 注册      |
+| `KnoluxRedisHealthIndicatorTest`                  | 健康指標 UP / DOWN                      |
+| `StandaloneConnectionFactoryBuilderTest`          | Standalone 策略單元測試                 |
+| `SentinelConnectionFactoryBuilderTest`            | Sentinel 策略單元測試                   |
+| `KnoluxRedisStandaloneIntegrationTest`            | Standalone 模式端對端測試（Docker）     |
+| `KnoluxRedisSentinelIntegrationTest`              | Sentinel 模式端對端測試（Docker）       |
+| `KnoluxRedisHealthIndicatorIntegrationTest`       | 健康指標搭配真實 Redis 測試             |
+
+整合測試 (`*IntegrationTest`) 需要 Docker；未啟動時自動跳過。
 
 ---
 
