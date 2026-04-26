@@ -1,4 +1,5 @@
-name: ci.yml
+name: CI
+
 on:
   push:
     branches: [ main, dev ]
@@ -7,6 +8,7 @@ on:
 
 env:
   FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
+  GRADLE_OPTS: "-Dorg.gradle.daemon=false -Dorg.gradle.parallel=true -Dorg.gradle.workers.max=4"
 
 jobs:
   test:
@@ -25,18 +27,29 @@ jobs:
         uses: actions/setup-java@v4
         with:
           java-version: ${{ matrix.java }}
-          distribution: 'temurin'
+          distribution: temurin
 
       - name: Setup Gradle
         uses: gradle/actions/setup-gradle@v4
+        with:
+          # PR 在唯讀模式（避免污染 main 的快取）；main / dev push 寫入快取
+          cache-read-only: ${{ github.event_name == 'pull_request' }}
 
       - name: Run tests
-        run: ./gradlew test
+        run: ./gradlew test --continue
 
-      - name: Upload test report
+      - name: Upload test report on failure
         if: failure()
         uses: actions/upload-artifact@v4
         with:
           name: test-report-java${{ matrix.java }}
           path: '**/build/reports/tests/test/'
+          retention-days: 7
+
+      - name: Upload test results (JUnit XML)
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: junit-xml-java${{ matrix.java }}
+          path: '**/build/test-results/test/*.xml'
           retention-days: 7

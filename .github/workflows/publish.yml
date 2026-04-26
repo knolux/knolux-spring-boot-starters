@@ -7,6 +7,7 @@ on:
 
 env:
   FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
+  GRADLE_OPTS: "-Dorg.gradle.daemon=false -Dorg.gradle.parallel=true"
 
 jobs:
   test-and-publish:
@@ -42,4 +43,5 @@ jobs:
       - name: Publish to GitHub Packages
         run: ./gradlew :${{ steps.meta.outputs.module }}:publish -Pversion=${{ steps.meta.outputs.version }}
         env:
+          GITHUB_ACTOR: ${{ github.actor }}
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

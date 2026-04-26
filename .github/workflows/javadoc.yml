@@ -10,6 +10,7 @@ permissions:
 
 env:
   FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
+  GRADLE_OPTS: "-Dorg.gradle.daemon=false"
 
 jobs:
   build-and-deploy:
@@ -25,6 +26,8 @@ jobs:
           distribution: temurin
 
       - uses: gradle/actions/setup-gradle@v4
+        with:
+          cache-read-only: true
 
       - name: Extract module from tag
         id: meta
