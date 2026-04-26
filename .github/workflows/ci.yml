@@ -30,7 +30,7 @@ jobs:
           distribution: temurin
 
       - name: Setup Gradle
-        uses: gradle/actions/setup-gradle@v4
+        uses: gradle/actions/setup-gradle@v6
         with:
           # PR 在唯讀模式（避免污染 main 的快取）；main / dev push 寫入快取
           cache-read-only: ${{ github.event_name == 'pull_request' }}
