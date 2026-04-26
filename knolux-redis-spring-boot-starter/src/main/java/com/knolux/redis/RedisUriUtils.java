@@ -10,7 +10,7 @@ import java.net.URI;
  * <p>各方法可獨立進行單元測試，URL 格式變動（如支援 IPv6、百分號編碼密碼）
  * 僅需修改此類別，不影響設定類別。
  */
-final class RedisUriUtils {
+public final class RedisUriUtils {
 
     private RedisUriUtils() {}
 
@@ -21,7 +21,7 @@ final class RedisUriUtils {
      * @param uri 已解析的 Redis URI
      * @return 密碼字串，或 {@code null}（無密碼時）
      */
-    static String parsePassword(URI uri) {
+    public static String parsePassword(URI uri) {
         if (uri.getUserInfo() == null) return null;
         String[] parts = uri.getUserInfo().split(":", 2);
         return parts.length == 2 ? parts[1] : null;
@@ -34,7 +34,7 @@ final class RedisUriUtils {
      * @param path URI 的 path 部分
      * @return 資料庫編號（0 ~ 15），解析失敗時為 {@code 0}
      */
-    static int parseDb(String path) {
+    public static int parseDb(String path) {
         if (path == null || path.isBlank() || "/".equals(path)) return 0;
         try {
             return Integer.parseInt(path.replaceFirst("^/", ""));
@@ -49,7 +49,7 @@ final class RedisUriUtils {
      * @param readFrom 策略字串，如 {@code "MASTER"}、{@code "REPLICA"}、{@code "ANY"}
      * @return 對應的 {@link ReadFrom} 列舉值
      */
-    static ReadFrom parseReadFrom(String readFrom) {
+    public static ReadFrom parseReadFrom(String readFrom) {
         return switch (readFrom.toUpperCase()) {
             case "REPLICA" -> ReadFrom.REPLICA;
             case "ANY"     -> ReadFrom.ANY;

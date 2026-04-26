@@ -1,21 +1,20 @@
 package com.knolux.redis;
 
-import io.lettuce.core.ReadFrom;
+import com.knolux.redis.connection.LettuceConnectionFactoryBuilder;
+import com.knolux.redis.connection.SentinelConnectionFactoryBuilder;
+import com.knolux.redis.connection.StandaloneConnectionFactoryBuilder;
 import org.springframework.boot.autoconfigure.AutoConfiguration;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnMissingBean;
 import org.springframework.boot.context.properties.EnableConfigurationProperties;
 import org.springframework.context.annotation.Bean;
 import org.springframework.data.redis.connection.RedisConnectionFactory;
-import org.springframework.data.redis.connection.RedisPassword;
-import org.springframework.data.redis.connection.RedisSentinelConfiguration;
-import org.springframework.data.redis.connection.RedisStandaloneConfiguration;
-import org.springframework.data.redis.connection.lettuce.LettuceClientConfiguration;
 import org.springframework.data.redis.connection.lettuce.LettuceConnectionFactory;
 import org.springframework.data.redis.core.RedisTemplate;
 import org.springframework.data.redis.core.StringRedisTemplate;
 import org.springframework.data.redis.serializer.StringRedisSerializer;
 
 import java.net.URI;
+import java.util.List;
 
 /**
  * Knolux Redis Spring Boot Starter 的自動設定類別。
@@ -60,6 +59,11 @@ import java.net.URI;
 @EnableConfigurationProperties(KnoluxRedisProperties.class)
 public class KnoluxRedisAutoConfiguration {
 
+    private static final List<LettuceConnectionFactoryBuilder> BUILDERS = List.of(
+            new SentinelConnectionFactoryBuilder(),
+            new StandaloneConnectionFactoryBuilder()
+    );
+
     private final KnoluxRedisProperties properties;
 
     public KnoluxRedisAutoConfiguration(KnoluxRedisProperties properties) {
@@ -73,16 +77,8 @@ public class KnoluxRedisAutoConfiguration {
     /**
      * 建立並設定 {@link LettuceConnectionFactory}（Redis 連線工廠）。
      *
-     * <p>此方法解析 {@code knolux.redis.url} 的 URI scheme，並據此選擇連線模式：
-     * <ul>
-     *   <li>scheme 為 {@code redis-sentinel} → 呼叫 {@link #buildSentinelFactory(URI)}
-     *       建立 Sentinel 高可用連線工廠</li>
-     *   <li>其他（通常為 {@code redis}）→ 呼叫 {@link #buildStandaloneFactory(URI)}
-     *       建立 Standalone 直連工廠</li>
-     * </ul>
-     *
-     * <p>每種模式內部獨立決定 {@link LettuceClientConfiguration}，
-     * 例如 Standalone 且 {@code readFrom=MASTER} 時不啟動 topology refresh。
+     * <p>此方法解析 {@code knolux.redis.url} 的 URI scheme，並委派給對應的
+     * {@link LettuceConnectionFactoryBuilder} 實作（策略模式）建立連線工廠。
      *
      * @return 設定完成的 {@link LettuceConnectionFactory}，可直接被 {@link RedisTemplate} 使用
      * @throws IllegalArgumentException 若 {@code knolux.redis.url} 未設定或為空白字串
@@ -101,9 +97,12 @@ public class KnoluxRedisAutoConfiguration {
         }
 
         URI uri = URI.create(url);
-        return "redis-sentinel".equals(uri.getScheme())
-                ? buildSentinelFactory(uri)
-                : buildStandaloneFactory(uri);
+        return BUILDERS.stream()
+                .filter(b -> b.supports(uri))
+                .findFirst()
+                .map(b -> b.build(uri, properties))
+                .orElseThrow(() -> new IllegalArgumentException(
+                        "不支援的 Redis URI scheme: " + uri.getScheme()));
     }
 
     // ─────────────────────────────────────────────
@@ -146,102 +145,6 @@ public class KnoluxRedisAutoConfiguration {
         template.setKeySerializer(new StringRedisSerializer());
         template.setHashKeySerializer(new StringRedisSerializer());
         return template;
-    }
-
-    // ─────────────────────────────────────────────
-    // 內部工具
-    // ─────────────────────────────────────────────
-
-    /**
-     * 建立 Sentinel（高可用）模式的 {@link LettuceConnectionFactory}。
-     *
-     * <p>從 URI 中解析以下資訊：
-     * <ul>
-     *   <li>Master 名稱：取自 URI 的 path 部分（去除開頭的 {@code /}），例如 {@code mymaster}</li>
-     *   <li>密碼：取自 URI 的 userInfo 部分（格式為 {@code :password}）</li>
-     *   <li>Sentinel 主機與埠號：取自 URI 的 host 與 port；若未指定埠號則預設為 {@code 26379}</li>
-     * </ul>
-     *
-     * <p>密碼會同時套用至 Redis 資料節點（{@code setPassword}）與
-     * Sentinel 節點（{@code setSentinelPassword}），確保兩者均可認證。
-     *
-     * <p>Sentinel 模式下強制設定 {@link ReadFrom} 策略，預設為 {@code REPLICA_PREFERRED}，
-     * 以充分利用 Sentinel 管理的從節點進行讀取分流。
-     *
-     * @param uri 已解析的 Sentinel URI，scheme 必須為 {@code redis-sentinel}
-     * @return 設定完成的 Sentinel 模式 {@link LettuceConnectionFactory}
-     */
-    private LettuceConnectionFactory buildSentinelFactory(URI uri) {
-        String masterName = uri.getPath().replaceFirst("^/", "");
-        String password = RedisUriUtils.parsePassword(uri);
-        String host = uri.getHost();
-        int port = uri.getPort() > 0 ? uri.getPort() : 26379;
-
-        RedisSentinelConfiguration config = new RedisSentinelConfiguration()
-                .master(masterName)
-                .sentinel(host, port);
-
-        if (password != null && !password.isBlank()) {
-            config.setPassword(RedisPassword.of(password));
-            config.setSentinelPassword(RedisPassword.of(password));
-        }
-
-        // Sentinel 模式永遠需要 readFrom（REPLICA_PREFERRED 為預設）
-        ReadFrom rf = RedisUriUtils.parseReadFrom(properties.getReadFrom());
-        LettuceClientConfiguration clientConfig = LettuceClientConfiguration.builder()
-                .commandTimeout(properties.getTimeoutMs())
-                .readFrom(rf)
-                .build();
-
-        return new LettuceConnectionFactory(config, clientConfig);
-    }
-
-    /**
-     * 建立 Standalone（直連）模式的 {@link LettuceConnectionFactory}。
-     *
-     * <p>從 URI 中解析以下資訊：
-     * <ul>
-     *   <li>主機名稱：取自 URI 的 host 部分</li>
-     *   <li>埠號：取自 URI 的 port 部分；若未指定則預設為 {@code 6379}</li>
-     *   <li>資料庫編號：取自 URI 的 path 部分（去除開頭的 {@code /}）；
-     *       若未指定或解析失敗則預設為 {@code 0}</li>
-     *   <li>密碼：取自 URI 的 userInfo 部分</li>
-     * </ul>
-     *
-     * <p>讀取策略的處理邏輯：
-     * <ul>
-     *   <li>當 {@code readFrom=MASTER} 時 — 不設定 {@link ReadFrom}，
-     *       Lettuce 不會啟動 topology refresh 背景執行緒，適用於純單節點部署</li>
-     *   <li>當 {@code readFrom} 為其他值時 — 設定對應的 {@link ReadFrom} 策略，
-     *       並啟用 topology refresh 以支援讀寫分離</li>
-     * </ul>
-     *
-     * @param uri 已解析的 Standalone URI，scheme 通常為 {@code redis}
-     * @return 設定完成的 Standalone 模式 {@link LettuceConnectionFactory}
-     */
-    private LettuceConnectionFactory buildStandaloneFactory(URI uri) {
-        String password = RedisUriUtils.parsePassword(uri);
-        String host = uri.getHost();
-        int port = uri.getPort() > 0 ? uri.getPort() : 6379;
-        int db = RedisUriUtils.parseDb(uri.getPath());
-
-        RedisStandaloneConfiguration config = new RedisStandaloneConfiguration(host, port);
-        config.setDatabase(db);
-        if (password != null && !password.isBlank()) {
-            config.setPassword(RedisPassword.of(password));
-        }
-
-        String readFrom = properties.getReadFrom();
-        var builder = LettuceClientConfiguration.builder()
-                .commandTimeout(properties.getTimeoutMs());
-
-        // 純 Standalone（MASTER）時不設定 readFrom，Lettuce 不會啟動 topology refresh；
-        // 其他策略（REPLICA_PREFERRED / REPLICA / ANY）啟用讀寫分離
-        if (!"MASTER".equalsIgnoreCase(readFrom)) {
-            builder.readFrom(RedisUriUtils.parseReadFrom(readFrom));
-        }
-
-        return new LettuceConnectionFactory(config, builder.build());
     }
 
 }
