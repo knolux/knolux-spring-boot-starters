@@ -27,6 +27,7 @@ loadScripts(document, 'script');</script>
 <div class="nav-menu-button"><button id="navbar-toggle-button" aria-controls="navbar-top" aria-expanded="false" aria-label="Toggle navigation links"><span class="nav-bar-toggle-icon">&nbsp;</span><span class="nav-bar-toggle-icon">&nbsp;</span><span class="nav-bar-toggle-icon">&nbsp;</span></button></div>
 <div class="skip-nav"><a href="#skip-navbar-top" title="Skip navigation links">Skip navigation links</a></div>
 <ul id="navbar-top-firstrow" class="nav-list" title="Navigation">
+<li><a href="../../../index.html">Overview</a></li>
 <li class="nav-bar-cell1-rev">Package</li>
 <li><a href="package-tree.html">Tree</a></li>
 <li><a href="../../../index-all.html">Index</a></li>
@@ -50,7 +51,16 @@ loadScripts(document, 'script');</script>
 <nav role="navigation" class="toc" aria-label="Table of contents">
 <div class="toc-header">Contents</div>
 <ol class="toc-list" tabindex="-1">
-<li><a href="#" tabindex="0">Description</a></li>
+<li><a href="#" tabindex="0">Description</a>
+<ol class="toc-list">
+<li><a href="#--heading" tabindex="0">模組概覽</a></li>
+<li><a href="#--heading1" tabindex="0">核心類別</a></li>
+<li><a href="#bean--heading" tabindex="0">Bean 依賴關係</a></li>
+<li><a href="#--heading2" tabindex="0">快速開始</a></li>
+<li><a href="#-readfrom--heading" tabindex="0">支援的 readFrom 策略</a></li>
+</ol>
+</li>
+<li><a href="#related-package-summary" tabindex="0">Related Packages</a></li>
 <li><a href="#class-summary" tabindex="0">Classes and Interfaces</a></li>
 </ol>
 <button class="hide-sidebar"><span>Hide sidebar&nbsp;</span><img src="../../../resource-files/left.svg" alt="Hide sidebar"></button><button class="show-sidebar"><img src="../../../resource-files/right.svg" alt="Show sidebar"><span>&nbsp;Show sidebar</span></button></nav>
@@ -61,9 +71,88 @@ loadScripts(document, 'script');</script>
 <hr>
 <div class="horizontal-scroll">
 <div class="package-signature">package <span class="element-name">com.knolux.redis</span></div>
+<section class="package-description" id="package-description">
+<div class="block">Knolux Redis Spring Boot Starter 核心套件。
+
+<h2 id="--heading">模組概覽</h2>
+<p>本 Starter 提供 Redis 連線的零配置自動設定，支援以下連線模式：
+<ul>
+  <li><strong>Standalone（直連）</strong> — URL scheme <code>redis://</code>，
+      適用開發與單節點部署</li>
+  <li><strong>Sentinel（高可用）</strong> — URL scheme <code>redis-sentinel://</code>，
+      適用生產環境主從自動切換</li>
+</ul>
+
+<h2 id="--heading1">核心類別</h2>
+<ul>
+  <li><a href="KnoluxRedisAutoConfiguration.html" title="class in com.knolux.redis"><code>KnoluxRedisAutoConfiguration</code></a> — Spring Boot 自動設定進入點，
+      使用 <a href="connection/LettuceConnectionFactoryBuilder.html" title="interface in com.knolux.redis.connection"><code>LettuceConnectionFactoryBuilder</code></a>
+      策略模式選擇連線工廠（符合 OCP）</li>
+  <li><a href="KnoluxRedisProperties.html" title="class in com.knolux.redis"><code>KnoluxRedisProperties</code></a> — 外部化設定屬性，
+      前綴 <code>knolux.redis</code></li>
+  <li><a href="KnoluxRedisHealthIndicator.html" title="class in com.knolux.redis"><code>KnoluxRedisHealthIndicator</code></a> — Spring Boot Actuator
+      健康端點整合，Bean 名稱 <code>knoluxRedis</code>（需要 Actuator 在 classpath）</li>
+  <li><a href="RedisUriUtils.html" title="class in com.knolux.redis"><code>RedisUriUtils</code></a> — URI 解析工具</li>
+</ul>
+
+<h2 id="bean--heading">Bean 依賴關係</h2>
+<pre>
+KnoluxRedisProperties (knolux.redis.*)
+    └─► KnoluxRedisAutoConfiguration
+            ├─► LettuceConnectionFactory (RedisConnectionFactory)
+            ├─► StringRedisTemplate
+            ├─► RedisTemplate&lt;String, Object&gt;
+            └─► KnoluxRedisHealthIndicator [需要 spring-boot-starter-actuator]
+</pre>
+
+<h2 id="--heading2">快速開始</h2>
+<pre><code># application.yml — Standalone 模式
+knolux:
+  redis:
+    url: redis://:password@localhost:6379
+    timeout-ms: 1000ms
+    read-from: MASTER
+
+# Sentinel 模式
+knolux:
+  redis:
+    url: redis-sentinel://:password@sentinel-host:26379/mymaster
+    timeout-ms: 3000ms
+    read-from: REPLICA_PREFERRED
+</code></pre>
+
+<h2 id="-readfrom--heading">支援的 readFrom 策略</h2>
+<ul>
+  <li><code>MASTER</code> — 全部讀寫走 Master（純單節點時不啟動 topology refresh）</li>
+  <li><code>REPLICA</code> — 強制只從 Replica 讀取</li>
+  <li><code>REPLICA_PREFERRED</code>（預設）— 優先 Replica，失敗回退至 Master</li>
+  <li><code>ANY</code> — 任意可用節點</li>
+</ul></div>
+<dl class="notes">
+<dt>See Also:</dt>
+<dd>
+<ul class="tag-list">
+<li><a href="connection/package-summary.html"><code>com.knolux.redis.connection</code></a></li>
+</ul>
+</dd>
+</dl>
+</section>
 </div>
 <section class="summary">
 <ul class="summary-list">
+<li>
+<div id="related-package-summary">
+<div class="caption"><span>Related Packages</span></div>
+<div class="summary-table two-column-summary">
+<div class="table-header col-first">Package</div>
+<div class="table-header col-last">Description</div>
+<div class="col-first even-row-color"><a href="connection/package-summary.html">com.knolux.redis.connection</a></div>
+<div class="col-last even-row-color">
+<div class="block">Redis 連線工廠建構器策略套件。</div>
+</div>
+</div>
+</div>
+</li>
 <li>
 <div id="class-summary">
 <div class="caption"><span>Classes</span></div>
@@ -72,15 +161,19 @@ loadScripts(document, 'script');</script>
 <div class="table-header col-last">Description</div>
 <div class="col-first even-row-color class-summary class-summary-tab2"><a href="KnoluxRedisAutoConfiguration.html" title="class in com.knolux.redis">KnoluxRedisAutoConfiguration</a></div>
 <div class="col-last even-row-color class-summary class-summary-tab2">
-<div class="block">Redis 自動設定。</div>
+<div class="block">Knolux Redis Spring Boot Starter 的自動設定類別。</div>
 </div>
 <div class="col-first odd-row-color class-summary class-summary-tab2"><a href="KnoluxRedisHealthIndicator.html" title="class in com.knolux.redis">KnoluxRedisHealthIndicator</a></div>
 <div class="col-last odd-row-color class-summary class-summary-tab2">
-<div class="block">Redis 健康狀態指標。</div>
+<div class="block">Redis 連線健康狀態指標。</div>
 </div>
 <div class="col-first even-row-color class-summary class-summary-tab2"><a href="KnoluxRedisProperties.html" title="class in com.knolux.redis">KnoluxRedisProperties</a></div>
 <div class="col-last even-row-color class-summary class-summary-tab2">
-<div class="block"><code>knolux.redis.*</code> 設定屬性。</div>
+<div class="block">Knolux Redis Spring Boot Starter 的外部化設定屬性類別。</div>
+</div>
+<div class="col-first odd-row-color class-summary class-summary-tab2"><a href="RedisUriUtils.html" title="class in com.knolux.redis">RedisUriUtils</a></div>
+<div class="col-last odd-row-color class-summary class-summary-tab2">
+<div class="block">Redis URI 解析工具，將 URL 字串解析邏輯從 <a href="KnoluxRedisAutoConfiguration.html" title="class in com.knolux.redis"><code>KnoluxRedisAutoConfiguration</code></a> 中分離。</div>
 </div>
 </div>
 </div>
