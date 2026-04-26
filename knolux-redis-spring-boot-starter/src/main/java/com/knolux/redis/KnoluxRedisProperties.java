@@ -91,23 +91,39 @@ public class KnoluxRedisProperties {
     /**
      * Lettuce 客戶端讀取策略，預設為 {@code REPLICA_PREFERRED}。
      *
-     * <p>此設定決定 Lettuce 在執行讀取指令時應選擇哪個節點，
-     * 可有效分散讀取壓力、降低 Master 節點負載。
+     * <p>此設定直接委派至 Lettuce {@link io.lettuce.core.ReadFrom#valueOf(String)}，
+     * 支援所有 Lettuce 內建策略（不區分大小寫）。
      *
-     * <p>支援的策略值（不區分大小寫）：
+     * <h3>單一節點選擇</h3>
      * <ul>
-     *   <li>{@code REPLICA_PREFERRED}（預設）— 優先從 Replica（從節點）讀取；
-     *       若 Replica 不可用則自動降級至 Master。適用於大部分讀多寫少的場景。</li>
-     *   <li>{@code MASTER} — 所有讀寫操作均走 Master（主節點）。
-     *       適用於對資料一致性要求極高的場景，或純 Standalone 不含 Replica 的部署。</li>
-     *   <li>{@code REPLICA} — 強制只從 Replica 讀取。
-     *       若 Replica 不可用則操作失敗，適用於明確分離讀寫流量的場景。</li>
-     *   <li>{@code ANY} — 從任意可用節點讀取（包含 Master 與所有 Replica）。
-     *       適用於最大化讀取吞吐量的場景。</li>
+     *   <li>{@code MASTER} / {@code UPSTREAM} — 所有讀寫均走 Master / Upstream。
+     *       純 Standalone 時不啟動 topology refresh（背景連線最少）。</li>
+     *   <li>{@code MASTER_PREFERRED} / {@code UPSTREAM_PREFERRED} —
+     *       優先 Master，不可用時降級至 Replica。</li>
+     *   <li>{@code REPLICA} / {@code SLAVE} — 強制只從 Replica 讀取，
+     *       Replica 不可用時操作失敗。</li>
+     *   <li>{@code REPLICA_PREFERRED}（預設）— 優先 Replica，
+     *       不可用時降級至 Master。適用大部分讀多寫少場景。</li>
+     *   <li>{@code ANY} — 任意可用節點（Master 或 Replica）。</li>
+     *   <li>{@code ANY_REPLICA} — 任意 Replica 節點。</li>
      * </ul>
      *
-     * <p>注意：在純 Standalone 模式（{@code redis://} 且 {@code readFrom=MASTER}）下，
-     * Lettuce 不會啟動 topology refresh，可減少背景連線開銷。
+     * <h3>進階策略</h3>
+     * <ul>
+     *   <li>{@code LOWEST_LATENCY} / {@code NEAREST} — 選擇延遲最低的節點，
+     *       需動態 topology refresh。</li>
+     *   <li>{@code subnet:<cidr,cidr,...>} — 限定特定子網路內的節點，
+     *       例如 {@code subnet:192.168.0.0/16,2001:db8::/52}。</li>
+     *   <li>{@code regex:<pattern>} — 以正規表示式比對節點 URI，
+     *       例如 {@code regex:.*region-1.*}。</li>
+     * </ul>
+     *
+     * <h3>備註</h3>
+     * <p>未知值會記錄 {@code WARN} 並回退至 {@code REPLICA_PREFERRED}。
+     * 純 Standalone 模式（{@code redis://}）且 {@code readFrom} 為 {@code MASTER} /
+     * {@code UPSTREAM} 時，Lettuce 不啟動 topology refresh。
+     *
+     * @see io.lettuce.core.ReadFrom
      */
     private String readFrom = "REPLICA_PREFERRED";
 }

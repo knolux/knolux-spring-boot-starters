@@ -42,4 +42,15 @@ class StandaloneConnectionFactoryBuilderTest {
     @Test void builds_factory_with_replica_preferred_read_from() {
         assertThat(builder.build(URI.create("redis://localhost:6379"), props("REPLICA_PREFERRED"))).isNotNull();
     }
+    @Test void builds_factory_with_upstream_read_from() {
+        // UPSTREAM 為 Lettuce 6+ 的 MASTER 別名，應與 MASTER 行為一致（不啟動 topology refresh）
+        assertThat(builder.build(URI.create("redis://localhost:6379"), props("UPSTREAM"))).isNotNull();
+    }
+    @Test void builds_factory_with_lowest_latency_read_from() {
+        assertThat(builder.build(URI.create("redis://localhost:6379"), props("LOWEST_LATENCY"))).isNotNull();
+    }
+    @Test void builds_factory_with_subnet_read_from() {
+        // 複合語法 — Lettuce ReadFrom.valueOf 直接解析
+        assertThat(builder.build(URI.create("redis://localhost:6379"), props("subnet:192.168.0.0/16"))).isNotNull();
+    }
 }

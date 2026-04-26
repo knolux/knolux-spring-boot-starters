@@ -85,14 +85,29 @@ knolux:
 
 ### 讀取策略說明
 
-| 值                  | 說明                                         |
-|---------------------|----------------------------------------------|
-| `REPLICA_PREFERRED` | 優先讀取 Replica 節點；不可用時改讀 Master   |
-| `MASTER`            | 永遠從 Master 讀取（純 Standalone 時不啟動 topology refresh） |
-| `REPLICA`           | 永遠從 Replica 讀取                          |
-| `ANY`               | 讀取任意可用節點                             |
+`read-from` 直接委派至 Lettuce [`ReadFrom.valueOf()`](https://github.com/redis/lettuce/blob/main/src/main/java/io/lettuce/core/ReadFrom.java)，支援所有 Lettuce 內建策略（不區分大小寫）。
 
-> 設定為未知值會記錄 `WARN` 日誌並回退至 `REPLICA_PREFERRED`。
+**單一節點選擇**
+
+| 值 | 說明 |
+|---|---|
+| `MASTER` / `UPSTREAM` | 永遠從 Master / Upstream 讀取（純 Standalone 時不啟動 topology refresh）|
+| `MASTER_PREFERRED` / `UPSTREAM_PREFERRED` | 優先 Master，不可用時降級至 Replica |
+| `REPLICA` / `SLAVE` | 永遠從 Replica 讀取（不可用則操作失敗）|
+| `REPLICA_PREFERRED`（預設）| 優先 Replica，不可用時降級至 Master |
+| `ANY` | 任意可用節點（Master 或 Replica）|
+| `ANY_REPLICA` | 任意 Replica 節點 |
+
+**進階策略**
+
+| 值 | 說明 |
+|---|---|
+| `LOWEST_LATENCY` / `NEAREST` | 選擇延遲最低的節點（需動態 topology refresh）|
+| `subnet:<cidr,cidr,...>` | 限定子網路，例如 `subnet:192.168.0.0/16,2001:db8::/52` |
+| `regex:<pattern>` | 以正規表示式比對節點 URI，例如 `regex:.*region-1.*` |
+
+> 未知值會記錄 `WARN` 並回退至 `REPLICA_PREFERRED`。
+> 純 Standalone 模式（`redis://`）且 `read-from=MASTER` 或 `UPSTREAM` 時，Lettuce 不啟動 topology refresh，可降低背景連線開銷。
 
 ---
 

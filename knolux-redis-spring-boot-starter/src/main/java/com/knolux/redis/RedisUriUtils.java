@@ -46,21 +46,55 @@ public final class RedisUriUtils {
     }
 
     /**
-     * 將策略字串（不區分大小寫）轉換為 {@link ReadFrom}；未知值回傳 {@link ReadFrom#REPLICA_PREFERRED}。
+     * 將策略字串轉換為 {@link ReadFrom}，直接委派至 Lettuce 的 {@link ReadFrom#valueOf(String)}。
      *
-     * @param readFrom 策略字串，如 {@code "MASTER"}、{@code "REPLICA"}、{@code "ANY"}
-     * @return 對應的 {@link ReadFrom} 列舉值
+     * <p>支援 Lettuce 全部策略（不區分大小寫）：
+     * <ul>
+     *   <li>單一節點選擇 — {@code MASTER} / {@code UPSTREAM}、{@code MASTER_PREFERRED} /
+     *       {@code UPSTREAM_PREFERRED}、{@code REPLICA} / {@code SLAVE}、
+     *       {@code REPLICA_PREFERRED} / {@code SLAVE_PREFERRED}、
+     *       {@code ANY}、{@code ANY_REPLICA}</li>
+     *   <li>延遲導向 — {@code LOWEST_LATENCY} / {@code NEAREST}（需動態 topology refresh）</li>
+     *   <li>子網路選擇 — {@code subnet:192.168.0.0/16,2001:db8::/52}</li>
+     *   <li>正規表示式選擇 — {@code regex:.*region-1.*}</li>
+     * </ul>
+     *
+     * <p>{@code null}、空白或無法解析的值會記錄 {@code WARN} 並回傳 {@link ReadFrom#REPLICA_PREFERRED}。
+     *
+     * @param readFrom 策略字串
+     * @return 對應的 {@link ReadFrom} 實例
+     * @see ReadFrom#valueOf(String)
      */
     public static ReadFrom parseReadFrom(String readFrom) {
-        return switch (readFrom.toUpperCase()) {
-            case "REPLICA"           -> ReadFrom.REPLICA;
-            case "ANY"               -> ReadFrom.ANY;
-            case "MASTER"            -> ReadFrom.MASTER;
-            case "REPLICA_PREFERRED" -> ReadFrom.REPLICA_PREFERRED;
-            default -> {
-                log.warn("未知的 readFrom 策略 '{}'，退回使用 REPLICA_PREFERRED。有效值：MASTER, REPLICA, REPLICA_PREFERRED, ANY", readFrom);
-                yield ReadFrom.REPLICA_PREFERRED;
-            }
-        };
+        if (readFrom == null || readFrom.isBlank()) {
+            log.warn("readFrom 未設定，使用預設值 REPLICA_PREFERRED");
+            return ReadFrom.REPLICA_PREFERRED;
+        }
+        try {
+            return ReadFrom.valueOf(readFrom.trim());
+        } catch (IllegalArgumentException ex) {
+            log.warn("未知的 readFrom 策略 '{}'，退回使用 REPLICA_PREFERRED。" +
+                     "支援值（不區分大小寫）：MASTER/UPSTREAM、MASTER_PREFERRED/UPSTREAM_PREFERRED、" +
+                     "REPLICA/SLAVE、REPLICA_PREFERRED、LOWEST_LATENCY/NEAREST、" +
+                     "ANY、ANY_REPLICA、subnet:<cidr,...>、regex:<pattern>",
+                     readFrom);
+            return ReadFrom.REPLICA_PREFERRED;
+        }
+    }
+
+    /**
+     * 判斷給定的 readFrom 字串是否為純 MASTER / UPSTREAM 模式。
+     *
+     * <p>純 MASTER 模式下 Lettuce 不需要 topology refresh，可降低背景連線開銷。
+     * 此判斷僅針對 String 別名，不展開為 {@link ReadFrom} 實例後比對，
+     * 避免 {@code subnet:} / {@code regex:} 等複合語法被誤判。
+     *
+     * @param readFrom 策略字串，可為 {@code null}
+     * @return {@code true} 當值為 {@code "MASTER"} 或 {@code "UPSTREAM"}（不區分大小寫）
+     */
+    public static boolean isMasterOnly(String readFrom) {
+        if (readFrom == null) return false;
+        String trimmed = readFrom.trim();
+        return "MASTER".equalsIgnoreCase(trimmed) || "UPSTREAM".equalsIgnoreCase(trimmed);
     }
 }

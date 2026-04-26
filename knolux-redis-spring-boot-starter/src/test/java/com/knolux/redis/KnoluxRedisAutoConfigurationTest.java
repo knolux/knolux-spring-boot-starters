@@ -198,6 +198,82 @@ class KnoluxRedisAutoConfigurationTest {
     }
 
     /**
+     * 驗證讀取策略設定為 {@code UPSTREAM}（Lettuce 6+ 別名）時可正確接受，
+     * 與 {@code MASTER} 行為一致（不啟動 topology refresh）。
+     */
+    @Test
+    void readFrom_upstream_shouldBeAccepted() {
+        contextRunner
+                .withPropertyValues(
+                        "knolux.redis.url=redis://localhost:6379",
+                        "knolux.redis.read-from=UPSTREAM"
+                )
+                .run(ctx ->
+                        assertThat(ctx).hasSingleBean(LettuceConnectionFactory.class)
+                );
+    }
+
+    /**
+     * 驗證 {@code LOWEST_LATENCY} 策略可正確接受。
+     */
+    @Test
+    void readFrom_lowestLatency_shouldBeAccepted() {
+        contextRunner
+                .withPropertyValues(
+                        "knolux.redis.url=redis://localhost:6379",
+                        "knolux.redis.read-from=LOWEST_LATENCY"
+                )
+                .run(ctx ->
+                        assertThat(ctx).hasSingleBean(LettuceConnectionFactory.class)
+                );
+    }
+
+    /**
+     * 驗證 {@code ANY_REPLICA} 策略可正確接受。
+     */
+    @Test
+    void readFrom_anyReplica_shouldBeAccepted() {
+        contextRunner
+                .withPropertyValues(
+                        "knolux.redis.url=redis://localhost:6379",
+                        "knolux.redis.read-from=ANY_REPLICA"
+                )
+                .run(ctx ->
+                        assertThat(ctx).hasSingleBean(LettuceConnectionFactory.class)
+                );
+    }
+
+    /**
+     * 驗證 {@code subnet:} 複合語法可正確接受（Lettuce 委派解析）。
+     */
+    @Test
+    void readFrom_subnet_shouldBeAccepted() {
+        contextRunner
+                .withPropertyValues(
+                        "knolux.redis.url=redis://localhost:6379",
+                        "knolux.redis.read-from=subnet:192.168.0.0/16"
+                )
+                .run(ctx ->
+                        assertThat(ctx).hasSingleBean(LettuceConnectionFactory.class)
+                );
+    }
+
+    /**
+     * 驗證 {@code regex:} 複合語法可正確接受。
+     */
+    @Test
+    void readFrom_regex_shouldBeAccepted() {
+        contextRunner
+                .withPropertyValues(
+                        "knolux.redis.url=redis://localhost:6379",
+                        "knolux.redis.read-from=regex:.*region-1.*"
+                )
+                .run(ctx ->
+                        assertThat(ctx).hasSingleBean(LettuceConnectionFactory.class)
+                );
+    }
+
+    /**
      * 驗證讀取策略設定為未知值時，自動回退至 {@code REPLICA_PREFERRED} 預設值。
      *
      * <p>此測試確認容錯處理機制：當 {@code knolux.redis.read-from} 設定為無效值時，

@@ -38,9 +38,9 @@ public class StandaloneConnectionFactoryBuilder implements LettuceConnectionFact
         var builder = LettuceClientConfiguration.builder()
                 .commandTimeout(properties.getTimeoutMs());
 
-        // 純 Standalone（MASTER）時不設定 readFrom，Lettuce 不會啟動 topology refresh；
-        // 其他策略（REPLICA_PREFERRED / REPLICA / ANY）啟用讀寫分離
-        if (!"MASTER".equalsIgnoreCase(readFrom)) {
+        // 純 MASTER / UPSTREAM 時不設定 readFrom，Lettuce 不會啟動 topology refresh；
+        // 其他策略（含 LOWEST_LATENCY、ANY、ANY_REPLICA、subnet:、regex: 等）啟用讀寫分離
+        if (!RedisUriUtils.isMasterOnly(readFrom)) {
             builder.readFrom(RedisUriUtils.parseReadFrom(readFrom));
         }
 
