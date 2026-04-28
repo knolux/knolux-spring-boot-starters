@@ -109,8 +109,9 @@ public class KnoluxS3ClientFactory implements S3ClientProvider {
             // endpoint 為空時使用 AWS SDK 預設端點（標準 AWS S3 場景）。
             // Nginx 代理場景：pathPrefix 附加至 endpoint，讓 SDK 建出含前綴的完整 URL，
             // 使 Nginx 可正確 route；KnoluxNoPathPrefixSigner 在計算簽章時移除前綴。
+            boolean b = d.removePathPrefix() && !d.pathPrefix().isBlank();
             if (d.endpoint() != null && !d.endpoint().isBlank()) {
-                String effectiveEndpoint = d.removePathPrefix() && !d.pathPrefix().isBlank()
+                String effectiveEndpoint = b
                         ? d.endpoint() + d.pathPrefix()
                         : d.endpoint();
                 s3Builder.endpointOverride(URI.create(effectiveEndpoint));
@@ -120,7 +121,7 @@ public class KnoluxS3ClientFactory implements S3ClientProvider {
             // 注意：SdkAdvancedClientOption.SIGNER 已標記為 deprecated，
             // 但在 AWS SDK v2 的 async pipeline 中仍透過 SigningStage 同步執行，
             // 因此對 S3AsyncClient 依然有效。遷移至 HttpSigner SPI 的工作已列入待辦。
-            if (d.removePathPrefix() && !d.pathPrefix().isBlank()) {
+            if (b) {
                 s3Builder.overrideConfiguration(conf -> conf.putAdvancedOption(
                         SdkAdvancedClientOption.SIGNER,
                         new KnoluxNoPathPrefixSigner(d.pathPrefix())
@@ -132,7 +133,7 @@ public class KnoluxS3ClientFactory implements S3ClientProvider {
             return s3Builder.build();
 
         } catch (Exception e) {
-            httpClientCache.remove(d.toCacheKey());
+            var ignored = httpClientCache.remove(d.toCacheKey());
             httpClient.close();
             throw e;
         }

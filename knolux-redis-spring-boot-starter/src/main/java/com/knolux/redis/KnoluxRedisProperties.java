@@ -91,8 +91,9 @@ public class KnoluxRedisProperties {
     /**
      * Lettuce 客戶端讀取策略，預設為 {@code REPLICA_PREFERRED}。
      *
-     * <p>此設定直接委派至 Lettuce {@link io.lettuce.core.ReadFrom#valueOf(String)}，
-     * 支援所有 Lettuce 內建策略（不區分大小寫）。
+     * <p>此設定透過 {@link RedisUriUtils#parseReadFrom(String)} 解析，
+     * 先以大小寫不敏感的 switch 比對所有具名策略，
+     * 再將 {@code subnet:} / {@code regex:} 前綴形式委派至 Lettuce 處理。
      *
      * <h3>單一節點選擇</h3>
      * <ul>
