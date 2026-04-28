@@ -47,9 +47,12 @@ public final class RedisUriUtils {
     }
 
     /**
-     * 將策略字串轉換為 {@link ReadFrom}，直接委派至 Lettuce 的 {@link ReadFrom#valueOf(String)}。
+     * 將策略字串轉換為 {@link ReadFrom}。
      *
-     * <p>支援 Lettuce 全部策略（不區分大小寫）：
+     * <p>解析流程：先以大小寫不敏感的 switch 比對所有已知的具名策略，
+     * 再將 {@code subnet:} / {@code regex:} 前綴形式委派至 {@link ReadFrom#valueOf(String)}。
+     *
+     * <p>支援策略（不區分大小寫）：
      * <ul>
      *   <li>單一節點選擇 — {@code MASTER} / {@code UPSTREAM}、{@code MASTER_PREFERRED} /
      *       {@code UPSTREAM_PREFERRED}、{@code REPLICA} / {@code SLAVE}、
@@ -64,23 +67,38 @@ public final class RedisUriUtils {
      *
      * @param readFrom 策略字串
      * @return 對應的 {@link ReadFrom} 實例
-     * @see ReadFrom#valueOf(String)
      */
     public static ReadFrom parseReadFrom(String readFrom) {
         if (readFrom == null || readFrom.isBlank()) {
             log.warn("readFrom 未設定，使用預設值 REPLICA_PREFERRED");
             return ReadFrom.REPLICA_PREFERRED;
         }
-        try {
-            return ReadFrom.valueOf(readFrom.trim());
-        } catch (IllegalArgumentException ex) {
-            log.warn("未知的 readFrom 策略 '{}'，退回使用 REPLICA_PREFERRED。" +
-                            "支援值（不區分大小寫）：MASTER/UPSTREAM、MASTER_PREFERRED/UPSTREAM_PREFERRED、" +
-                            "REPLICA/SLAVE、REPLICA_PREFERRED、LOWEST_LATENCY/NEAREST、" +
-                            "ANY、ANY_REPLICA、subnet:<cidr,...>、regex:<pattern>",
-                    readFrom);
-            return ReadFrom.REPLICA_PREFERRED;
-        }
+        String trimmed = readFrom.trim();
+        return switch (trimmed.toUpperCase()) {
+            case "MASTER", "UPSTREAM" -> ReadFrom.MASTER;
+            case "MASTER_PREFERRED", "UPSTREAM_PREFERRED" -> ReadFrom.MASTER_PREFERRED;
+            case "REPLICA", "SLAVE" -> ReadFrom.REPLICA;
+            // SLAVE_PREFERRED 是本 starter 自訂的底線形式別名；
+            // Lettuce valueOf() 使用 camelCase（slavePreferred），不接受底線形式。
+            case "REPLICA_PREFERRED", "SLAVE_PREFERRED" -> ReadFrom.REPLICA_PREFERRED;
+            case "LOWEST_LATENCY", "NEAREST" -> ReadFrom.LOWEST_LATENCY;
+            case "ANY" -> ReadFrom.ANY;
+            case "ANY_REPLICA" -> ReadFrom.ANY_REPLICA;
+            default -> {
+                // subnet:<cidr,...> 和 regex:<pattern> 委派給 Lettuce 解析。
+                // 使用 trimmed（保留原始大小寫）以確保 CIDR / regex 內容不被大寫化。
+                try {
+                    yield ReadFrom.valueOf(trimmed);
+                } catch (IllegalArgumentException ex) {
+                    log.warn("未知的 readFrom 策略 '{}'，退回使用 REPLICA_PREFERRED。" +
+                                    "支援值（不區分大小寫）：MASTER/UPSTREAM、MASTER_PREFERRED/UPSTREAM_PREFERRED、" +
+                                    "REPLICA/SLAVE、REPLICA_PREFERRED/SLAVE_PREFERRED、LOWEST_LATENCY/NEAREST、" +
+                                    "ANY、ANY_REPLICA、subnet:<cidr,...>、regex:<pattern>",
+                            readFrom);
+                    yield ReadFrom.REPLICA_PREFERRED;
+                }
+            }
+        };
     }
 
     /**
