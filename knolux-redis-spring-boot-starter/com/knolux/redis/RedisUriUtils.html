@@ -114,7 +114,7 @@ loadScripts(document, 'script');</script>
 <div class="col-first odd-row-color method-summary-table method-summary-table-tab1 method-summary-table-tab4"><code>static io.lettuce.core.ReadFrom</code></div>
 <div class="col-second odd-row-color method-summary-table method-summary-table-tab1 method-summary-table-tab4"><code><a href="#parseReadFrom(java.lang.String)" class="member-name-link">parseReadFrom</a><wbr>(<a href="https://docs.oracle.com/en/java/javase/25/docs/api/java.base/java/lang/String.html" title="class or interface in java.lang" class="external-link">String</a>&nbsp;readFrom)</code></div>
 <div class="col-last odd-row-color method-summary-table method-summary-table-tab1 method-summary-table-tab4">
-<div class="block">將策略字串轉換為 <code>ReadFrom</code>，直接委派至 Lettuce 的 <code>ReadFrom.valueOf(String)</code>。</div>
+<div class="block">將策略字串轉換為 <code>ReadFrom</code>。</div>
 </div>
 </div>
 </div>
@@ -170,9 +170,12 @@ path 為空或非數字時回傳 <code>0</code>。</div>
 <h3>parseReadFrom</h3>
 <div class="horizontal-scroll">
 <div class="member-signature"><span class="modifiers">public static</span>&nbsp;<span class="return-type">io.lettuce.core.ReadFrom</span>&nbsp;<span class="element-name">parseReadFrom</span><wbr><span class="parameters">(<a href="https://docs.oracle.com/en/java/javase/25/docs/api/java.base/java/lang/String.html" title="class or interface in java.lang" class="external-link">String</a>&nbsp;readFrom)</span></div>
-<div class="block">將策略字串轉換為 <code>ReadFrom</code>，直接委派至 Lettuce 的 <code>ReadFrom.valueOf(String)</code>。
+<div class="block">將策略字串轉換為 <code>ReadFrom</code>。
 
-<p>支援 Lettuce 全部策略（不區分大小寫）：
+<p>解析流程：先以大小寫不敏感的 switch 比對所有已知的具名策略，
+再將 <code>subnet:</code> / <code>regex:</code> 前綴形式委派至 <code>ReadFrom.valueOf(String)</code>。
+
+<p>支援策略（不區分大小寫）：
 <ul>
   <li>單一節點選擇 — <code>MASTER</code> / <code>UPSTREAM</code>、<code>MASTER_PREFERRED</code> /
       <code>UPSTREAM_PREFERRED</code>、<code>REPLICA</code> / <code>SLAVE</code>、
@@ -189,12 +192,6 @@ path 為空或非數字時回傳 <code>0</code>。</div>
 <dd><code>readFrom</code> - 策略字串</dd>
 <dt>Returns:</dt>
 <dd>對應的 <code>ReadFrom</code> 實例</dd>
-<dt>See Also:</dt>
-<dd>
-<ul class="tag-list">
-<li><code>ReadFrom.valueOf(String)</code></li>
-</ul>
-</dd>
 </dl>
 </div>
 </section>
