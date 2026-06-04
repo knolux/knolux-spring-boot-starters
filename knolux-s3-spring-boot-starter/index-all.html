@@ -182,7 +182,7 @@ loadScripts(document, 'script');</script>
 </dd>
 <dt><a href="com/knolux/s3/KnoluxS3Properties.html#%3Cinit%3E()" class="member-name-link">KnoluxS3Properties()</a> - Constructor for class com.knolux.s3.<a href="com/knolux/s3/KnoluxS3Properties.html" title="class in com.knolux.s3">KnoluxS3Properties</a></dt>
 <dd>&nbsp;</dd>
-<dt><a href="com/knolux/s3/KnoluxS3AutoConfiguration.html#knoluxS3Template(com.knolux.s3.S3ClientProvider,java.util.concurrent.Executor)" class="member-name-link">knoluxS3Template(S3ClientProvider, Executor)</a> - Method in class com.knolux.s3.<a href="com/knolux/s3/KnoluxS3AutoConfiguration.html" title="class in com.knolux.s3">KnoluxS3AutoConfiguration</a></dt>
+<dt><a href="com/knolux/s3/KnoluxS3AutoConfiguration.html#knoluxS3Template(com.knolux.s3.S3ClientProvider,java.util.concurrent.Executor,com.knolux.s3.KnoluxS3Properties)" class="member-name-link">knoluxS3Template(S3ClientProvider, Executor, KnoluxS3Properties)</a> - Method in class com.knolux.s3.<a href="com/knolux/s3/KnoluxS3AutoConfiguration.html" title="class in com.knolux.s3">KnoluxS3AutoConfiguration</a></dt>
 <dd>&nbsp;</dd>
 <dt><a href="com/knolux/s3/KnoluxS3Template.html" class="type-name-link" title="class in com.knolux.s3">KnoluxS3Template</a> - Class in <a href="com/knolux/s3/package-summary.html">com.knolux.s3</a></dt>
 <dd>
@@ -190,9 +190,13 @@ loadScripts(document, 'script');</script>
 </dd>
 <dt><a href="com/knolux/s3/KnoluxS3Template.html#%3Cinit%3E(com.knolux.s3.S3ClientProvider)" class="member-name-link">KnoluxS3Template(S3ClientProvider)</a> - Constructor for class com.knolux.s3.<a href="com/knolux/s3/KnoluxS3Template.html" title="class in com.knolux.s3">KnoluxS3Template</a></dt>
 <dd>
-<div class="block">向下兼容建構子，使用 <a href="https://docs.oracle.com/en/java/javase/25/docs/api/java.base/java/util/concurrent/ForkJoinPool.html#commonPool()" title="class or interface in java.util.concurrent" class="external-link"><code>ForkJoinPool.commonPool()</code></a> 作為預設 executor。</div>
+<div class="block">向下兼容建構子，使用 <a href="https://docs.oracle.com/en/java/javase/25/docs/api/java.base/java/util/concurrent/ForkJoinPool.html#commonPool()" title="class or interface in java.util.concurrent" class="external-link"><code>ForkJoinPool.commonPool()</code></a> 作為預設 executor，且不提供 Properties。</div>
 </dd>
 <dt><a href="com/knolux/s3/KnoluxS3Template.html#%3Cinit%3E(com.knolux.s3.S3ClientProvider,java.util.concurrent.Executor)" class="member-name-link">KnoluxS3Template(S3ClientProvider, Executor)</a> - Constructor for class com.knolux.s3.<a href="com/knolux/s3/KnoluxS3Template.html" title="class in com.knolux.s3">KnoluxS3Template</a></dt>
+<dd>
+<div class="block">建構子（不提供 Properties）。</div>
+</dd>
+<dt><a href="com/knolux/s3/KnoluxS3Template.html#%3Cinit%3E(com.knolux.s3.S3ClientProvider,java.util.concurrent.Executor,com.knolux.s3.KnoluxS3Properties)" class="member-name-link">KnoluxS3Template(S3ClientProvider, Executor, KnoluxS3Properties)</a> - Constructor for class com.knolux.s3.<a href="com/knolux/s3/KnoluxS3Template.html" title="class in com.knolux.s3">KnoluxS3Template</a></dt>
 <dd>
 <div class="block">完整建構子。</div>
 </dd>

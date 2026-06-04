@@ -64,7 +64,7 @@ loadScripts(document, 'script');</script>
 <ol class="toc-list">
 <li><a href="#knoluxS3ClientFactory(com.knolux.s3.KnoluxS3Properties)" tabindex="0">knoluxS3ClientFactory(KnoluxS3Properties)</a></li>
 <li><a href="#knoluxS3Executor(org.springframework.core.env.Environment)" tabindex="0">knoluxS3Executor(Environment)</a></li>
-<li><a href="#knoluxS3Template(com.knolux.s3.S3ClientProvider,java.util.concurrent.Executor)" tabindex="0">knoluxS3Template(S3ClientProvider, Executor)</a></li>
+<li><a href="#knoluxS3Template(com.knolux.s3.S3ClientProvider,java.util.concurrent.Executor,com.knolux.s3.KnoluxS3Properties)" tabindex="0">knoluxS3Template(S3ClientProvider, Executor, KnoluxS3Properties)</a></li>
 </ol>
 </li>
 </ol>
@@ -153,8 +153,9 @@ s3Template.download(spec, AsyncResponseTransformer.toBytes());
 <div class="block">供 <a href="KnoluxS3Template.html" title="class in com.knolux.s3"><code>KnoluxS3Template</code></a> 執行 CompletableFuture 回呼的 Executor。</div>
 </div>
 <div class="col-first even-row-color method-summary-table method-summary-table-tab2 method-summary-table-tab4"><code><a href="KnoluxS3Template.html" title="class in com.knolux.s3">KnoluxS3Template</a></code></div>
-<div class="col-second even-row-color method-summary-table method-summary-table-tab2 method-summary-table-tab4"><code><a href="#knoluxS3Template(com.knolux.s3.S3ClientProvider,java.util.concurrent.Executor)" class="member-name-link">knoluxS3Template</a><wbr>(<a href="S3ClientProvider.html" title="interface in com.knolux.s3">S3ClientProvider</a>&nbsp;clientProvider,
- <a href="https://docs.oracle.com/en/java/javase/25/docs/api/java.base/java/util/concurrent/Executor.html" title="class or interface in java.util.concurrent" class="external-link">Executor</a>&nbsp;knoluxS3Executor)</code></div>
+<div class="col-second even-row-color method-summary-table method-summary-table-tab2 method-summary-table-tab4"><code><a href="#knoluxS3Template(com.knolux.s3.S3ClientProvider,java.util.concurrent.Executor,com.knolux.s3.KnoluxS3Properties)" class="member-name-link">knoluxS3Template</a><wbr>(<a href="S3ClientProvider.html" title="interface in com.knolux.s3">S3ClientProvider</a>&nbsp;clientProvider,
+ <a href="https://docs.oracle.com/en/java/javase/25/docs/api/java.base/java/util/concurrent/Executor.html" title="class or interface in java.util.concurrent" class="external-link">Executor</a>&nbsp;knoluxS3Executor,
+ <a href="KnoluxS3Properties.html" title="class in com.knolux.s3">KnoluxS3Properties</a>&nbsp;props)</code></div>
 <div class="col-last even-row-color method-summary-table method-summary-table-tab2 method-summary-table-tab4">&nbsp;</div>
 </div>
 </div>
@@ -221,14 +222,15 @@ s3Template.download(spec, AsyncResponseTransformer.toBytes());
 </section>
 </li>
 <li>
-<section class="detail" id="knoluxS3Template(com.knolux.s3.S3ClientProvider,java.util.concurrent.Executor)">
+<section class="detail" id="knoluxS3Template(com.knolux.s3.S3ClientProvider,java.util.concurrent.Executor,com.knolux.s3.KnoluxS3Properties)">
 <h3>knoluxS3Template</h3>
 <div class="horizontal-scroll">
 <div class="member-signature"><span class="annotations">@Bean
 @ConditionalOnMissingBean
 </span><span class="modifiers">public</span>&nbsp;<span class="return-type"><a href="KnoluxS3Template.html" title="class in com.knolux.s3">KnoluxS3Template</a></span>&nbsp;<span class="element-name">knoluxS3Template</span><wbr><span class="parameters">(<a href="S3ClientProvider.html" title="interface in com.knolux.s3">S3ClientProvider</a>&nbsp;clientProvider,
  @Qualifier("knoluxS3Executor")
- <a href="https://docs.oracle.com/en/java/javase/25/docs/api/java.base/java/util/concurrent/Executor.html" title="class or interface in java.util.concurrent" class="external-link">Executor</a>&nbsp;knoluxS3Executor)</span></div>
+ <a href="https://docs.oracle.com/en/java/javase/25/docs/api/java.base/java/util/concurrent/Executor.html" title="class or interface in java.util.concurrent" class="external-link">Executor</a>&nbsp;knoluxS3Executor,
+ <a href="KnoluxS3Properties.html" title="class in com.knolux.s3">KnoluxS3Properties</a>&nbsp;props)</span></div>
 </div>
 </section>
 </li>

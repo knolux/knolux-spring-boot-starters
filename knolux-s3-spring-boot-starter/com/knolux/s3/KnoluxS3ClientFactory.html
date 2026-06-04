@@ -251,8 +251,16 @@ Spring 容器關閉時透過 <code>@Bean(destroyMethod = "close")</code> 自動�
 <div class="block">關閉所有快取的 <code>S3AsyncClient</code> 與 Netty HTTP client，釋放執行緒資源。
 
 <p>可安全多次呼叫（冪等）。關閉順序：S3AsyncClient 先、HTTP client 後。
-注意：此方法不等待進行中的 I/O 完成，未完成的 <a href="https://docs.oracle.com/en/java/javase/25/docs/api/java.base/java/util/concurrent/CompletableFuture.html" title="class or interface in java.util.concurrent" class="external-link"><code>CompletableFuture</code></a>
-可能收到 <a href="https://docs.oracle.com/en/java/javase/25/docs/api/java.base/java/nio/channels/ClosedChannelException.html" title="class or interface in java.nio.channels" class="external-link"><code>ClosedChannelException</code></a>。</div>
+注意：此方法<strong>不等待</strong>進行中的 I/O 完成，未完成的
+<a href="https://docs.oracle.com/en/java/javase/25/docs/api/java.base/java/util/concurrent/CompletableFuture.html" title="class or interface in java.util.concurrent" class="external-link"><code>CompletableFuture</code></a> 可能收到
+<a href="https://docs.oracle.com/en/java/javase/25/docs/api/java.base/java/nio/channels/ClosedChannelException.html" title="class or interface in java.nio.channels" class="external-link"><code>ClosedChannelException</code></a>（進行中的 upload 可能因此未完整寫入）。
+
+<p>若需在關閉時避免遺失進行中的操作，請於應用層確保所有 future 已完成後再關閉容器，
+或啟用 Spring 優雅關機讓進行中的請求先完成：
+<pre><code>server.shutdown=graceful
+spring.lifecycle.timeout-per-shutdown-phase=30s
+</code></pre>
+本 factory 為共享資源，刻意不主動阻塞關機去 drain 未知擁有者的 future（以免拖延容器關閉）。</div>
 <dl class="notes">
 <dt>Specified by:</dt>
 <dd><code><a href="https://docs.oracle.com/en/java/javase/25/docs/api/java.base/java/lang/AutoCloseable.html#close()" title="class or interface in java.lang" class="external-link">close</a></code>&nbsp;in interface&nbsp;<code><a href="https://docs.oracle.com/en/java/javase/25/docs/api/java.base/java/lang/AutoCloseable.html" title="class or interface in java.lang" class="external-link">AutoCloseable</a></code></dd>
