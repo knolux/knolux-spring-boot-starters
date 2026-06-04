@@ -109,7 +109,7 @@ public class KnoluxS3ClientFactory implements S3ClientProvider {
             // endpoint 為空時使用 AWS SDK 預設端點（標準 AWS S3 場景）。
             // Nginx 代理場景：pathPrefix 附加至 endpoint，讓 SDK 建出含前綴的完整 URL，
             // 使 Nginx 可正確 route；KnoluxNoPathPrefixSigner 在計算簽章時移除前綴。
-            boolean b = d.removePathPrefix() && !d.pathPrefix().isBlank();
+            boolean b = d.removePathPrefix() && d.pathPrefix() != null && !d.pathPrefix().isBlank();
             // 正規化前綴：補前導 "/"、去尾端 "/"。endpoint 串接與簽章器使用「同一」正規化值，
             // 避免 endpoint 結尾斜線造成 "//"、或前綴缺前導斜線造成 host 解析錯誤，
             // 並確保 KnoluxNoPathPrefixSigner 剝除的前綴與 SDK 實際送出的路徑一致。

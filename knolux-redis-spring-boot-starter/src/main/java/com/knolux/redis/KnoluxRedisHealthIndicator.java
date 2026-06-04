@@ -91,8 +91,10 @@ public class KnoluxRedisHealthIndicator implements HealthIndicator {
                         .build();
             }
         } catch (Exception ex) {
+            // ex.getMessage() 可能為 null（部分例外無訊息）；退回 toString() 確保 detail 不為 null
+            String detail = ex.getMessage() != null ? ex.getMessage() : ex.toString();
             return Health.down()
-                    .withDetail("error", ex.getMessage())
+                    .withDetail("error", detail)
                     .build();
         }
     }

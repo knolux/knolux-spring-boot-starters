@@ -47,6 +47,14 @@ class SentinelConnectionFactoryBuilderTest {
     }
 
     @Test
+    void builds_factory_default_sentinel_port_is_26379() {
+        // 強化上面的斷言：確認 fallback port 確實為 26379（而非僅 isNotNull）
+        var sentinel = builder.build(URI.create("redis-sentinel://:pass@host/mymaster"), props())
+                .getSentinelConfiguration().getSentinels().iterator().next();
+        assertThat(sentinel.getPort()).isEqualTo(26379);
+    }
+
+    @Test
     void throws_when_master_name_is_missing() {
         assertThatIllegalArgumentException()
                 .isThrownBy(() -> builder.build(URI.create("redis-sentinel://host:26379"), props()))
