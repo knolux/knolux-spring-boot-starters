@@ -155,12 +155,14 @@ loadScripts(document, 'script');</script>
 <div class="horizontal-scroll">
 <div class="member-signature"><span class="modifiers">public static</span>&nbsp;<span class="return-type">int</span>&nbsp;<span class="element-name">parseDb</span><wbr><span class="parameters">(<a href="https://docs.oracle.com/en/java/javase/25/docs/api/java.base/java/lang/String.html" title="class or interface in java.lang" class="external-link">String</a>&nbsp;path)</span></div>
 <div class="block">從 URI path（如 <code>/3</code>）解析 Redis 資料庫編號。
-path 為空或非數字時回傳 <code>0</code>。</div>
+path 為空、<code>"/"</code> 或空白時回傳 <code>0</code>（預設 DB）；非數字則視為設定錯誤拋出例外。</div>
 <dl class="notes">
 <dt>Parameters:</dt>
 <dd><code>path</code> - URI 的 path 部分</dd>
 <dt>Returns:</dt>
-<dd>資料庫編號（0 ~ 15），解析失敗時為 <code>0</code></dd>
+<dd>資料庫編號（空路徑回傳 <code>0</code>）</dd>
+<dt>Throws:</dt>
+<dd><code><a href="https://docs.oracle.com/en/java/javase/25/docs/api/java.base/java/lang/IllegalArgumentException.html" title="class or interface in java.lang" class="external-link">IllegalArgumentException</a></code> - 若 DB 區段為非數字</dd>
 </dl>
 </div>
 </section>
