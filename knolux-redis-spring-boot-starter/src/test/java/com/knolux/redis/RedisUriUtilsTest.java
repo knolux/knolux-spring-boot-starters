@@ -10,6 +10,7 @@ import org.junit.jupiter.params.provider.ValueSource;
 import java.net.URI;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 /**
  * {@link RedisUriUtils} 的單元測試。
@@ -101,8 +102,11 @@ class RedisUriUtilsTest {
     }
 
     @Test
-    void parseDb_nonNumeric_returnsZero() {
-        assertThat(RedisUriUtils.parseDb("/abc")).isZero();
+    void parseDb_nonNumeric_throwsIllegalArgument() {
+        // 非數字 DB 區段為設定錯誤，應 fail-fast 而非靜默退回 DB 0
+        assertThatThrownBy(() -> RedisUriUtils.parseDb("/abc"))
+                .isInstanceOf(IllegalArgumentException.class)
+                .hasMessageContaining("DB");
     }
 
     // ── isMasterOnly ──────────────────────────────────────────────────────────

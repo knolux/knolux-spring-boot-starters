@@ -18,7 +18,11 @@ public class StandaloneConnectionFactoryBuilder implements LettuceConnectionFact
 
     @Override
     public boolean supports(URI uri) {
-        return !"redis-sentinel".equals(uri.getScheme());
+        // 僅接受 redis:// scheme（大小寫不敏感，RFC 3986 規定 scheme 不分大小寫）。
+        // 不再以「非 sentinel 即 standalone」的 catch-all 方式吞下任意 scheme：
+        // 如此未知 scheme（含 rediss:// — 本 starter 尚未支援 TLS）會在 Auto-Configuration
+        // 落入 orElseThrow 得到明確錯誤，而非被靜默當成明文 standalone 連線。
+        return uri.getScheme() != null && "redis".equalsIgnoreCase(uri.getScheme());
     }
 
     @Override

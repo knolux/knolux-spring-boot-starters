@@ -57,14 +57,22 @@ public record KnoluxS3ConnectionDetails(
      * @return 長度固定、不含敏感明文的快取鍵字串
      */
     public String toCacheKey() {
-        return "%s|%s|%s|%b|%b|%s|%b".formatted(
-                endpoint != null ? endpoint : "",
-                region != null ? region : "",
-                CacheKeys.sha256Hex(accessKey),
-                forcePathStyle, removePathPrefix,
-                pathPrefix != null ? pathPrefix : "",
-                trustSelfSigned
-        );
+        // 以 record 解構列出所有 component：日後新增欄位會改變解構元數而「編譯失敗」，
+        // 強制開發者決定新欄位是否納入 key（避免靜默漏欄位造成快取碰撞，或誤把新 secret 寫入 key）。
+        // secretKey 以 unnamed pattern `_` 明確標示「刻意不納入 key」。
+        if (this instanceof KnoluxS3ConnectionDetails(
+                String ep, String rg, String ak, _,
+                boolean fps, boolean rpp, String pp, boolean tss)) {
+            return "%s|%s|%s|%b|%b|%s|%b".formatted(
+                    ep != null ? ep : "",
+                    rg != null ? rg : "",
+                    CacheKeys.sha256Hex(ak),
+                    fps, rpp,
+                    pp != null ? pp : "",
+                    tss
+            );
+        }
+        throw new AssertionError("unreachable");
     }
 
 }

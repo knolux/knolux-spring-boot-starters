@@ -36,6 +36,11 @@ import java.util.concurrent.ForkJoinPool;
  * s3Template.download(spec, AsyncResponseTransformer.toBytes());
  * }</pre>
  *
+ * <p>由 starter 自動裝配的 {@code KnoluxS3Template} 會自動套用 {@code mergeDefaults}，
+ * 部署級別設定（forcePathStyle / removePathPrefix / pathPrefix / trustSelfSigned）一律以
+ * {@link KnoluxS3Properties} 為準；呼叫端即使省略 {@code mergeDefaults} 也無法以 payload 覆寫。
+ * （自行 {@code new KnoluxS3Template(...)} 而未傳入 Properties 時，仍須自行呼叫 {@code mergeDefaults}。）
+ *
  * <h2>進階模式（Advanced）</h2>
  * <p>明確指定 {@link KnoluxS3ConnectionDetails}，適合需要精細控制連線的場景：
  * <pre>{@code
@@ -52,23 +57,47 @@ public class KnoluxS3Template {
     private final Executor continuationExecutor;
 
     /**
+     * 動態模式的 fallback 預設值來源；可為 {@code null}。
+     *
+     * <p>非 {@code null} 時，{@link #upload(KnoluxS3OperationSpec, AsyncRequestBody)} 等動態模式方法
+     * 會自動對傳入的 {@link KnoluxS3OperationSpec} 套用 {@link KnoluxS3OperationSpec#mergeDefaults}，
+     * 使部署級別設定一律以 Properties 為準（安全邊界）。由 starter 自動裝配時注入此值。
+     */
+    private final KnoluxS3Properties properties;
+
+    /**
      * 完整建構子。
+     *
+     * @param clientProvider       S3 client 提供者
+     * @param continuationExecutor 用於執行 {@link CompletableFuture#whenCompleteAsync} 回呼的 Executor
+     * @param properties           動態模式自動套用 {@link KnoluxS3OperationSpec#mergeDefaults} 的預設來源；
+     *                             {@code null} 表示不自動套用（呼叫端須自行 {@code mergeDefaults}）
+     */
+    public KnoluxS3Template(S3ClientProvider clientProvider, Executor continuationExecutor,
+                            KnoluxS3Properties properties) {
+        this.clientProvider = clientProvider;
+        this.continuationExecutor = continuationExecutor;
+        this.properties = properties;
+    }
+
+    /**
+     * 建構子（不提供 Properties）。動態模式須由呼叫端自行呼叫
+     * {@link KnoluxS3OperationSpec#mergeDefaults(KnoluxS3Properties)}。
      *
      * @param clientProvider       S3 client 提供者
      * @param continuationExecutor 用於執行 {@link CompletableFuture#whenCompleteAsync} 回呼的 Executor
      */
     public KnoluxS3Template(S3ClientProvider clientProvider, Executor continuationExecutor) {
-        this.clientProvider = clientProvider;
-        this.continuationExecutor = continuationExecutor;
+        this(clientProvider, continuationExecutor, null);
     }
 
     /**
-     * 向下兼容建構子，使用 {@link ForkJoinPool#commonPool()} 作為預設 executor。
+     * 向下兼容建構子，使用 {@link ForkJoinPool#commonPool()} 作為預設 executor，且不提供 Properties。
      *
      * @param clientProvider S3 client 提供者
      */
     public KnoluxS3Template(S3ClientProvider clientProvider) {
-        this(clientProvider, ForkJoinPool.commonPool());
+        this(clientProvider, ForkJoinPool.commonPool(), null);
     }
 
     // ── 靜態模式（Properties 預設連線）──────────────────────────────────────────
@@ -92,17 +121,31 @@ public class KnoluxS3Template {
 
     public CompletableFuture<PutObjectResponse> upload(
             KnoluxS3OperationSpec spec, AsyncRequestBody body) {
-        return upload(spec.getBucket(), spec.getKey(), body, spec.toConnectionDetails());
+        KnoluxS3OperationSpec effective = applyDefaults(spec);
+        return upload(effective.getBucket(), effective.getKey(), body, effective.toConnectionDetails());
     }
 
     public <T> CompletableFuture<T> download(
             KnoluxS3OperationSpec spec,
             AsyncResponseTransformer<GetObjectResponse, T> transformer) {
-        return download(spec.getBucket(), spec.getKey(), transformer, spec.toConnectionDetails());
+        KnoluxS3OperationSpec effective = applyDefaults(spec);
+        return download(effective.getBucket(), effective.getKey(), transformer, effective.toConnectionDetails());
     }
 
     public CompletableFuture<DeleteObjectResponse> delete(KnoluxS3OperationSpec spec) {
-        return delete(spec.getBucket(), spec.getKey(), spec.toConnectionDetails());
+        KnoluxS3OperationSpec effective = applyDefaults(spec);
+        return delete(effective.getBucket(), effective.getKey(), effective.toConnectionDetails());
+    }
+
+    /**
+     * 動態模式安全邊界：若本 template 持有 {@link KnoluxS3Properties}（starter 自動裝配時注入），
+     * 一律套用 {@link KnoluxS3OperationSpec#mergeDefaults}，使部署級別設定
+     * （forcePathStyle / removePathPrefix / pathPrefix / trustSelfSigned）只來自 Properties，
+     * 即使呼叫端忘記呼叫 {@code mergeDefaults} 也無法以 payload 覆寫（重複套用為冪等）。
+     * {@code properties} 為 {@code null}（自行建構且未提供）時維持原狀，由呼叫端負責先行 {@code mergeDefaults}。
+     */
+    private KnoluxS3OperationSpec applyDefaults(KnoluxS3OperationSpec spec) {
+        return properties != null ? spec.mergeDefaults(properties) : spec;
     }
 
     // ── 進階模式（明確指定連線 + 分離的 bucket / key）────────────────────────────

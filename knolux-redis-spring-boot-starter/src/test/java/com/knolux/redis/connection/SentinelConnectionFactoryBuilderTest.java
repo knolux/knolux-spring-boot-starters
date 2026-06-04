@@ -30,6 +30,12 @@ class SentinelConnectionFactoryBuilderTest {
     }
 
     @Test
+    void supports_sentinel_scheme_caseInsensitive() {
+        // RFC 3986：scheme 不分大小寫，Redis-Sentinel:// 不應被誤判為 Standalone
+        assertThat(builder.supports(URI.create("Redis-Sentinel://host:26379/master"))).isTrue();
+    }
+
+    @Test
     void builds_factory_with_master_name() {
         assertThat(builder.build(URI.create("redis-sentinel://:pass@host:26379/mymaster"), props())).isNotNull();
     }

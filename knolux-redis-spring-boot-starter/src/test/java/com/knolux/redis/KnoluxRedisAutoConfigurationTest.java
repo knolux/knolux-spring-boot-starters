@@ -326,6 +326,21 @@ class KnoluxRedisAutoConfigurationTest {
                 );
     }
 
+    /**
+     * 驗證不支援的 scheme（例如 {@code rediss://}）會明確失敗，
+     * 而非靜默被當成明文 standalone 連線（安全性）。
+     */
+    @Test
+    void unsupportedScheme_shouldFailWithIllegalArgumentException() {
+        contextRunner
+                .withPropertyValues("knolux.redis.url=rediss://localhost:6379")
+                .run(ctx ->
+                        assertThat(ctx)
+                                .getFailure()
+                                .hasMessageContaining("不支援的 Redis URI scheme")
+                );
+    }
+
     // ─────────────────────────────────────────────
     // ConditionalOnMissingBean
     // ─────────────────────────────────────────────

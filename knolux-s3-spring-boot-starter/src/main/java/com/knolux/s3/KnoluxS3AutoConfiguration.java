@@ -74,7 +74,10 @@ public class KnoluxS3AutoConfiguration {
     @ConditionalOnMissingBean
     public KnoluxS3Template knoluxS3Template(
             S3ClientProvider clientProvider,
-            @Qualifier("knoluxS3Executor") Executor knoluxS3Executor) {
-        return new KnoluxS3Template(clientProvider, knoluxS3Executor);
+            @Qualifier("knoluxS3Executor") Executor knoluxS3Executor,
+            KnoluxS3Properties props) {
+        // 傳入 Properties：動態模式的 OperationSpec 會自動套用 mergeDefaults，
+        // 確保部署級別設定一律來自 Properties（安全邊界，呼叫端無法以 payload 繞過）。
+        return new KnoluxS3Template(clientProvider, knoluxS3Executor, props);
     }
 }

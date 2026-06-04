@@ -73,6 +73,15 @@ public class KnoluxNoPathPrefixSigner implements Signer {
             if (!pathForSigning.startsWith("/")) {
                 pathForSigning = "/" + pathForSigning;
             }
+        } else {
+            // 已啟用 remove-path-prefix，但請求路徑未以設定的 path-prefix 開頭：
+            // 多半是 knolux.s3.path-prefix 與實際路徑 / Nginx location 不一致。
+            // 此時退回以原始路徑簽章；若反向代理仍會剝除前綴，SeaweedFS 將回 403 SignatureDoesNotMatch。
+            // 記錄 WARN，使原本只有遠端 403、本地零訊號的設定錯誤得以即時診斷。
+            log.warn("[S3 簽章] 已啟用 remove-path-prefix，但請求路徑未以設定的 path-prefix 開頭，"
+                            + "將以原始路徑計算簽章（若反向代理仍剝除前綴會導致 403）。"
+                            + "path-prefix={}, 實際請求路徑={}",
+                    prefixToRemove, originalPath);
         }
 
         // 以短路徑計算簽章

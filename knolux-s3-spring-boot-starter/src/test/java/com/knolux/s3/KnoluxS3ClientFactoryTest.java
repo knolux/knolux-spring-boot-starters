@@ -181,6 +181,20 @@ class KnoluxS3ClientFactoryTest {
     }
 
     @Test
+    void getClient_withPathPrefixMissingLeadingSlash_shouldNormalizeAndBuild() {
+        // pathPrefix 缺前導斜線 + endpoint 無尾斜線：未正規化會組出
+        // "http://fake-s3.test:9000cluster/s3"（port 解析失敗 → URI.create 拋例外）。
+        // 正規化後應組成 "http://fake-s3.test:9000/cluster/s3" 並成功建立。
+        var details = new KnoluxS3ConnectionDetails(
+                "http://fake-s3.test:9000", "us-east-1", "k", "s",
+                true, true, "cluster/s3", false   // 注意：無前導斜線
+        );
+        factory = new KnoluxS3ClientFactory(details);
+
+        assertThat(factory.getClient()).isNotNull();
+    }
+
+    @Test
     void getClient_differentPathPrefixes_shouldReturnDifferentInstances() {
         factory = new KnoluxS3ClientFactory(validDetails("http://fake-s3.test:9000"));
 

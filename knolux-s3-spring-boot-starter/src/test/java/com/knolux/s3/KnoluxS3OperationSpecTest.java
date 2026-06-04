@@ -175,6 +175,36 @@ class KnoluxS3OperationSpecTest {
         assertThat(spec.isTrustSelfSigned()).isTrue();
     }
 
+    @Test
+    void mergeDefaults_hostilePayloadDeploymentFlags_areDiscardedInFavorOfProperties() {
+        // Properties 鎖定為安全設定
+        var props = new KnoluxS3Properties();
+        props.setEndpoint("https://safe-host");
+        props.setAccessKey("k");
+        props.setSecretKey("s");
+        props.setForcePathStyle(true);
+        props.setRemovePathPrefix(false);
+        props.setPathPrefix("");
+        props.setTrustSelfSigned(false);
+
+        // payload 嘗試關閉 forcePathStyle、開啟 trustSelfSigned 並注入 pathPrefix（提權嘗試）
+        var spec = KnoluxS3OperationSpec.builder()
+                .bucket("b")
+                .key("k")
+                .forcePathStyle(false)
+                .removePathPrefix(true)
+                .pathPrefix("/evil")
+                .trustSelfSigned(true)
+                .build()
+                .mergeDefaults(props);
+
+        // 部署級別設定一律以 Properties 為準，payload 的惡意值被丟棄
+        assertThat(spec.isForcePathStyle()).isTrue();
+        assertThat(spec.isRemovePathPrefix()).isFalse();
+        assertThat(spec.getPathPrefix()).isEqualTo("");
+        assertThat(spec.isTrustSelfSigned()).isFalse();
+    }
+
     // ── mergeDefaults：null 驗證 ─────────────────────────────────────────────
 
     @Test
