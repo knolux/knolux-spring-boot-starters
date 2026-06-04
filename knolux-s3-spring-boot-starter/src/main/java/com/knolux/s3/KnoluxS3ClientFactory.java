@@ -109,10 +109,14 @@ public class KnoluxS3ClientFactory implements S3ClientProvider {
             // endpoint 為空時使用 AWS SDK 預設端點（標準 AWS S3 場景）。
             // Nginx 代理場景：pathPrefix 附加至 endpoint，讓 SDK 建出含前綴的完整 URL，
             // 使 Nginx 可正確 route；KnoluxNoPathPrefixSigner 在計算簽章時移除前綴。
-            boolean b = d.removePathPrefix() && !d.pathPrefix().isBlank();
+            boolean b = d.removePathPrefix() && d.pathPrefix() != null && !d.pathPrefix().isBlank();
+            // 正規化前綴：補前導 "/"、去尾端 "/"。endpoint 串接與簽章器使用「同一」正規化值，
+            // 避免 endpoint 結尾斜線造成 "//"、或前綴缺前導斜線造成 host 解析錯誤，
+            // 並確保 KnoluxNoPathPrefixSigner 剝除的前綴與 SDK 實際送出的路徑一致。
+            String normalizedPrefix = b ? normalizePathPrefix(d.pathPrefix()) : "";
             if (d.endpoint() != null && !d.endpoint().isBlank()) {
                 String effectiveEndpoint = b
-                        ? d.endpoint() + d.pathPrefix()
+                        ? d.endpoint().replaceAll("/+$", "") + normalizedPrefix
                         : d.endpoint();
                 s3Builder.endpointOverride(URI.create(effectiveEndpoint));
             }
@@ -124,7 +128,7 @@ public class KnoluxS3ClientFactory implements S3ClientProvider {
             if (b) {
                 s3Builder.overrideConfiguration(conf -> conf.putAdvancedOption(
                         SdkAdvancedClientOption.SIGNER,
-                        new KnoluxNoPathPrefixSigner(d.pathPrefix())
+                        new KnoluxNoPathPrefixSigner(normalizedPrefix)
                 ));
             }
 
@@ -140,11 +144,34 @@ public class KnoluxS3ClientFactory implements S3ClientProvider {
     }
 
     /**
+     * 正規化路徑前綴：確保以 {@code "/"} 開頭並移除尾端 {@code "/"}。
+     *
+     * <p>endpoint 串接與 {@link KnoluxNoPathPrefixSigner} 必須使用相同的前綴值，
+     * 否則簽章剝除的前綴會與 SDK 實際送出的路徑不一致而導致 403。
+     *
+     * @param prefix 非空白的原始前綴
+     * @return 正規化後的前綴（例如 {@code cluster/s3/} 與 {@code /cluster/s3} 皆正規化為 {@code /cluster/s3}）
+     */
+    private static String normalizePathPrefix(String prefix) {
+        String p = prefix.startsWith("/") ? prefix : "/" + prefix;
+        return p.replaceAll("/+$", "");
+    }
+
+    /**
      * 關閉所有快取的 {@link S3AsyncClient} 與 Netty HTTP client，釋放執行緒資源。
      *
      * <p>可安全多次呼叫（冪等）。關閉順序：S3AsyncClient 先、HTTP client 後。
-     * 注意：此方法不等待進行中的 I/O 完成，未完成的 {@link java.util.concurrent.CompletableFuture}
-     * 可能收到 {@link java.nio.channels.ClosedChannelException}。
+     * 注意：此方法<strong>不等待</strong>進行中的 I/O 完成，未完成的
+     * {@link java.util.concurrent.CompletableFuture} 可能收到
+     * {@link java.nio.channels.ClosedChannelException}（進行中的 upload 可能因此未完整寫入）。
+     *
+     * <p>若需在關閉時避免遺失進行中的操作，請於應用層確保所有 future 已完成後再關閉容器，
+     * 或啟用 Spring 優雅關機讓進行中的請求先完成：
+     * <pre>{@code
+     * server.shutdown=graceful
+     * spring.lifecycle.timeout-per-shutdown-phase=30s
+     * }</pre>
+     * 本 factory 為共享資源，刻意不主動阻塞關機去 drain 未知擁有者的 future（以免拖延容器關閉）。
      */
     @Override
     public void close() {

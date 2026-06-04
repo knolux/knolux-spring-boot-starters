@@ -4,7 +4,9 @@ import org.junit.jupiter.api.Test;
 import org.springframework.boot.autoconfigure.AutoConfigurations;
 import org.springframework.boot.test.context.runner.ApplicationContextRunner;
 import org.springframework.data.redis.connection.lettuce.LettuceConnectionFactory;
+import org.springframework.data.redis.core.RedisTemplate;
 import org.springframework.data.redis.core.StringRedisTemplate;
+import org.springframework.data.redis.serializer.StringRedisSerializer;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
@@ -97,6 +99,21 @@ class KnoluxRedisAutoConfigurationTest {
                 .run(ctx ->
                         assertThat(ctx).hasSingleBean(LettuceConnectionFactory.class)
                 );
+    }
+
+    /**
+     * 驗證 redisTemplate 確實以 {@link StringRedisSerializer} 設定 key 與 hashKey 序列化器
+     * （驗證 @Bean 方法的實際序列化邏輯，而非僅驗證 Bean 是否存在）。
+     */
+    @Test
+    void redisTemplate_usesStringRedisSerializerForKeys() {
+        contextRunner
+                .withPropertyValues("knolux.redis.url=redis://localhost:6379")
+                .run(ctx -> {
+                    RedisTemplate<?, ?> tpl = ctx.getBean("redisTemplate", RedisTemplate.class);
+                    assertThat(tpl.getKeySerializer()).isInstanceOf(StringRedisSerializer.class);
+                    assertThat(tpl.getHashKeySerializer()).isInstanceOf(StringRedisSerializer.class);
+                });
     }
 
     // ─────────────────────────────────────────────
@@ -323,6 +340,21 @@ class KnoluxRedisAutoConfigurationTest {
                         assertThat(ctx)
                                 .getFailure()
                                 .hasMessageContaining("knolux.redis.url is required")
+                );
+    }
+
+    /**
+     * 驗證不支援的 scheme（例如 {@code rediss://}）會明確失敗，
+     * 而非靜默被當成明文 standalone 連線（安全性）。
+     */
+    @Test
+    void unsupportedScheme_shouldFailWithIllegalArgumentException() {
+        contextRunner
+                .withPropertyValues("knolux.redis.url=rediss://localhost:6379")
+                .run(ctx ->
+                        assertThat(ctx)
+                                .getFailure()
+                                .hasMessageContaining("不支援的 Redis URI scheme")
                 );
     }
 

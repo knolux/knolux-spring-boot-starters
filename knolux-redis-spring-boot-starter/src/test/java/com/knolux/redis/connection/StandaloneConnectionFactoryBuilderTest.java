@@ -29,6 +29,19 @@ class StandaloneConnectionFactoryBuilderTest {
     }
 
     @Test
+    void does_not_support_rediss_scheme() {
+        // rediss://（TLS）尚未支援，不應被 standalone 接受並靜默以明文連線；
+        // 應由 Auto-Configuration 的 orElseThrow 明確拒絕
+        assertThat(builder.supports(URI.create("rediss://localhost:6379"))).isFalse();
+    }
+
+    @Test
+    void supports_redis_scheme_caseInsensitive() {
+        // RFC 3986：scheme 不分大小寫
+        assertThat(builder.supports(URI.create("REDIS://localhost:6379"))).isTrue();
+    }
+
+    @Test
     void builds_factory_with_default_port() {
         assertThat(builder.build(URI.create("redis://localhost"), props("MASTER")).getPort()).isEqualTo(6379);
     }

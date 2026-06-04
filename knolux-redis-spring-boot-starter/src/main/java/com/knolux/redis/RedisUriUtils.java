@@ -32,17 +32,23 @@ public final class RedisUriUtils {
 
     /**
      * 從 URI path（如 {@code /3}）解析 Redis 資料庫編號。
-     * path 為空或非數字時回傳 {@code 0}。
+     * path 為空、{@code "/"} 或空白時回傳 {@code 0}（預設 DB）；非數字則視為設定錯誤拋出例外。
      *
      * @param path URI 的 path 部分
-     * @return 資料庫編號（0 ~ 15），解析失敗時為 {@code 0}
+     * @return 資料庫編號（空路徑回傳 {@code 0}）
+     * @throws IllegalArgumentException 若 DB 區段為非數字
      */
     public static int parseDb(String path) {
         if (path == null || path.isBlank() || "/".equals(path)) return 0;
+        String dbSegment = path.replaceFirst("^/", "");
         try {
-            return Integer.parseInt(path.replaceFirst("^/", ""));
+            return Integer.parseInt(dbSegment);
         } catch (NumberFormatException e) {
-            return 0;
+            // 非數字 DB 區段是設定錯誤（例如把 sentinel 的 /mastername 餵給 standalone）。
+            // 過去靜默退回 DB 0 會導致跨租戶 key 碰撞且無任何訊號；改為 fail-fast。
+            throw new IllegalArgumentException(
+                    "Redis URL 的 DB 區段必須為數字，實際為: \"" + dbSegment
+                            + "\"（例如 redis://host:6379/3）", e);
         }
     }
 

@@ -104,7 +104,9 @@ public class KnoluxRedisAutoConfiguration {
                 .findFirst()
                 .map(b -> b.build(uri, properties))
                 .orElseThrow(() -> new IllegalArgumentException(
-                        "不支援的 Redis URI scheme: " + uri.getScheme()));
+                        "不支援的 Redis URI scheme: " + uri.getScheme()
+                                + "。支援的 scheme：redis://（Standalone）、redis-sentinel://（Sentinel）。"
+                                + "注意：rediss:// TLS 連線尚未支援，請勿使用以免誤連明文。"));
     }
 
     // ─────────────────────────────────────────────

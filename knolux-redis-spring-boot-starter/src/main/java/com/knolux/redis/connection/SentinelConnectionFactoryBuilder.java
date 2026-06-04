@@ -18,7 +18,9 @@ public class SentinelConnectionFactoryBuilder implements LettuceConnectionFactor
 
     @Override
     public boolean supports(URI uri) {
-        return "redis-sentinel".equals(uri.getScheme());
+        // scheme 大小寫不敏感（RFC 3986）：Redis-Sentinel:// 等寫法亦正確識別為 Sentinel，
+        // 不會誤落入 Standalone 而靜默停用主從 failover。
+        return uri.getScheme() != null && "redis-sentinel".equalsIgnoreCase(uri.getScheme());
     }
 
     @Override

@@ -30,6 +30,12 @@ class SentinelConnectionFactoryBuilderTest {
     }
 
     @Test
+    void supports_sentinel_scheme_caseInsensitive() {
+        // RFC 3986：scheme 不分大小寫，Redis-Sentinel:// 不應被誤判為 Standalone
+        assertThat(builder.supports(URI.create("Redis-Sentinel://host:26379/master"))).isTrue();
+    }
+
+    @Test
     void builds_factory_with_master_name() {
         assertThat(builder.build(URI.create("redis-sentinel://:pass@host:26379/mymaster"), props())).isNotNull();
     }
@@ -38,6 +44,14 @@ class SentinelConnectionFactoryBuilderTest {
     void builds_factory_default_sentinel_port_fallback() {
         // URI 不含 port，應使用 26379
         assertThat(builder.build(URI.create("redis-sentinel://:pass@host/mymaster"), props())).isNotNull();
+    }
+
+    @Test
+    void builds_factory_default_sentinel_port_is_26379() {
+        // 強化上面的斷言：確認 fallback port 確實為 26379（而非僅 isNotNull）
+        var sentinel = builder.build(URI.create("redis-sentinel://:pass@host/mymaster"), props())
+                .getSentinelConfiguration().getSentinels().iterator().next();
+        assertThat(sentinel.getPort()).isEqualTo(26379);
     }
 
     @Test

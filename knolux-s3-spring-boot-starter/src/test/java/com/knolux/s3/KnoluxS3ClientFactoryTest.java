@@ -146,6 +146,31 @@ class KnoluxS3ClientFactoryTest {
     }
 
     @Test
+    void close_clearsCache_subsequentGetClientBuildsNewInstance() {
+        factory = new KnoluxS3ClientFactory(validDetails("http://fake-s3.test:9000"));
+        S3AsyncClient first = factory.getClient();
+        factory.close();
+        // close() 已清空 cache → 再次取得應為新實例（若仍相同代表 cache 未釋放）
+        S3AsyncClient second = factory.getClient();
+        assertThat(second).isNotSameAs(first);
+    }
+
+    @Test
+    void getClient_whenEndpointMalformed_propagatesExceptionAndStaysClean() {
+        // endpoint 含空白 → buildClient 內 URI.create 拋例外，觸發 catch 的洩漏防護
+        // （httpClient 先入 cache、失敗時移除並關閉）。驗證例外傳出且後續 close() 乾淨。
+        var bad = new KnoluxS3ConnectionDetails(
+                "http://bad host:9000", "us-east-1", "k", "s", true, false, "", false);
+        factory = new KnoluxS3ClientFactory(bad);
+
+        assertThatThrownBy(() -> factory.getClient())
+                .isInstanceOf(IllegalArgumentException.class);
+
+        factory.close(); // 不應拋出（httpClient 已於失敗時回收）
+        factory = null;
+    }
+
+    @Test
     void getClient_withForcePathStyleFalse_shouldBuildSuccessfully() {
         var details = new KnoluxS3ConnectionDetails(
                 "http://fake-s3.test:9000", "us-east-1", "k", "s", false, false, "", false
@@ -174,6 +199,20 @@ class KnoluxS3ClientFactoryTest {
         var details = new KnoluxS3ConnectionDetails(
                 "http://fake-s3.test:9000", "us-east-1", "k", "s",
                 true, true, "/cluster/s3", false
+        );
+        factory = new KnoluxS3ClientFactory(details);
+
+        assertThat(factory.getClient()).isNotNull();
+    }
+
+    @Test
+    void getClient_withPathPrefixMissingLeadingSlash_shouldNormalizeAndBuild() {
+        // pathPrefix 缺前導斜線 + endpoint 無尾斜線：未正規化會組出
+        // "http://fake-s3.test:9000cluster/s3"（port 解析失敗 → URI.create 拋例外）。
+        // 正規化後應組成 "http://fake-s3.test:9000/cluster/s3" 並成功建立。
+        var details = new KnoluxS3ConnectionDetails(
+                "http://fake-s3.test:9000", "us-east-1", "k", "s",
+                true, true, "cluster/s3", false   // 注意：無前導斜線
         );
         factory = new KnoluxS3ClientFactory(details);
 

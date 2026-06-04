@@ -10,6 +10,7 @@ import org.junit.jupiter.params.provider.ValueSource;
 import java.net.URI;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 /**
  * {@link RedisUriUtils} 的單元測試。
@@ -69,6 +70,12 @@ class RedisUriUtilsTest {
         assertThat(RedisUriUtils.parseReadFrom("TOTALLY_UNKNOWN")).isSameAs(ReadFrom.REPLICA_PREFERRED);
     }
 
+    @Test
+    void parseReadFrom_malformedSubnet_fallsBackToReplicaPreferred() {
+        // subnet: 前綴交由 Lettuce 解析，CIDR 無效時應被 catch 並退回 REPLICA_PREFERRED
+        assertThat(RedisUriUtils.parseReadFrom("subnet:not-a-cidr")).isSameAs(ReadFrom.REPLICA_PREFERRED);
+    }
+
     // ── parsePassword ──────────────────────────────────────────────────────────
 
     @Test
@@ -86,6 +93,12 @@ class RedisUriUtilsTest {
         assertThat(RedisUriUtils.parsePassword(new URI("redis://user:secret@localhost:6379"))).isEqualTo("secret");
     }
 
+    @Test
+    void parsePassword_passwordContainingColon_isPreserved() throws Exception {
+        // split(":", 2) 的 limit=2 確保密碼內的冒號被保留
+        assertThat(RedisUriUtils.parsePassword(new URI("redis://:p4ss:w0rd@host:6379"))).isEqualTo("p4ss:w0rd");
+    }
+
     // ── parseDb ───────────────────────────────────────────────────────────────
 
     @ParameterizedTest
@@ -101,8 +114,11 @@ class RedisUriUtilsTest {
     }
 
     @Test
-    void parseDb_nonNumeric_returnsZero() {
-        assertThat(RedisUriUtils.parseDb("/abc")).isZero();
+    void parseDb_nonNumeric_throwsIllegalArgument() {
+        // 非數字 DB 區段為設定錯誤，應 fail-fast 而非靜默退回 DB 0
+        assertThatThrownBy(() -> RedisUriUtils.parseDb("/abc"))
+                .isInstanceOf(IllegalArgumentException.class)
+                .hasMessageContaining("DB");
     }
 
     // ── isMasterOnly ──────────────────────────────────────────────────────────
