@@ -3,14 +3,14 @@
 Spring Boot Starter，封裝 AWS SDK v2 非同步 S3 client，支援 SeaweedFS / MinIO 及標準 AWS S3。
 提供靜態、動態、進階三層 API，適用 K8s 直連、自簽憑證 HTTPS、Nginx 反向代理、標準 AWS S3 等場景。
 
-技術棧：**Java 25 LTS** · **Spring Boot 4.0.5** · **Spring Framework 7** · **AWS SDK v2 Async** · **Virtual Thread**
+技術棧：**Java 25 LTS** · **Spring Boot 4.0.6** · **Spring Framework 7** · **AWS SDK v2 Async** · **Virtual Thread**
 
 ---
 
 ## 環境需求
 
 - **Java 25 LTS**（Temurin 建議）
-- **Spring Boot 4.0.5+**
+- **Spring Boot 4.0.6+**
 
 ---
 
@@ -19,7 +19,7 @@ Spring Boot Starter，封裝 AWS SDK v2 非同步 S3 client，支援 SeaweedFS /
 ### Gradle
 
 ```kotlin
-implementation("com.knolux:knolux-s3-spring-boot-starter:1.0.0")
+implementation("com.knolux:knolux-s3-spring-boot-starter:1.2.0")
 ```
 
 ### Maven
@@ -28,7 +28,7 @@ implementation("com.knolux:knolux-s3-spring-boot-starter:1.0.0")
 <dependency>
   <groupId>com.knolux</groupId>
   <artifactId>knolux-s3-spring-boot-starter</artifactId>
-  <version>1.0.0</version>
+  <version>1.2.0</version>
 </dependency>
 ```
 

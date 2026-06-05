@@ -2,7 +2,7 @@
 
 一組 Spring Boot 自動設定 Starter 函式庫，封裝常用基礎設施元件。每個模組獨立版本，發布至 GitHub Packages。
 
-技術棧：**Java 25 LTS** · **Spring Boot 4.0.5** · **Spring Framework 7** · **Virtual Thread**
+技術棧：**Java 25 LTS** · **Spring Boot 4.0.6** · **Spring Framework 7** · **Virtual Thread**
 
 ---
 
@@ -31,8 +31,8 @@ repositories {
 }
 
 dependencies {
-    implementation("com.knolux:knolux-redis-spring-boot-starter:1.0.0")
-    implementation("com.knolux:knolux-s3-spring-boot-starter:1.0.0")
+    implementation("com.knolux:knolux-redis-spring-boot-starter:1.3.0")
+    implementation("com.knolux:knolux-s3-spring-boot-starter:1.2.0")
 }
 ```
 
@@ -47,12 +47,12 @@ dependencies {
 <dependency>
     <groupId>com.knolux</groupId>
     <artifactId>knolux-redis-spring-boot-starter</artifactId>
-    <version>1.0.0</version>
+    <version>1.3.0</version>
 </dependency>
 <dependency>
     <groupId>com.knolux</groupId>
     <artifactId>knolux-s3-spring-boot-starter</artifactId>
-    <version>1.0.0</version>
+    <version>1.2.0</version>
 </dependency>
 ```
 
@@ -164,7 +164,7 @@ byte[] content = s3Template.download(spec, AsyncResponseTransformer.toBytes())
 ## 系統需求
 
 - **Java 25 LTS**（Temurin 建議）
-- **Spring Boot 4.0.5+**
+- **Spring Boot 4.0.6+**
 - Docker（僅整合測試需要，未安裝時會自動跳過）
 
 ---
