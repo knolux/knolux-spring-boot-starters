@@ -1,11 +1,15 @@
 package com.knolux.build.depgate.task
 
+import com.knolux.build.depgate.Approval
+import com.knolux.build.depgate.ApprovalMatcher
+import com.knolux.build.depgate.ApprovalStore
 import com.knolux.build.depgate.DependencyGraphReader
 import com.knolux.build.depgate.DependencySet
 import com.knolux.build.depgate.DependencySetBuilder
 import org.gradle.api.DefaultTask
 import org.gradle.api.artifacts.result.ResolvedComponentResult
 import org.gradle.api.file.DirectoryProperty
+import org.gradle.api.file.RegularFileProperty
 import org.gradle.api.provider.MapProperty
 import org.gradle.api.tasks.Internal
 import java.io.File
@@ -26,6 +30,10 @@ abstract class DependencyGateTask : DefaultTask() {
     @get:Internal
     abstract val baselineDir: DirectoryProperty
 
+    /** 核准檔位置（`gradle/dependency-approvals.toml`）。檔案不存在時視為零筆核准。 */
+    @get:Internal
+    abstract val approvalsFile: RegularFileProperty
+
     /** repo 根目錄，供 git 操作與路徑相對化使用。 */
     @get:Internal
     abstract val repoDir: DirectoryProperty
@@ -44,6 +52,12 @@ abstract class DependencyGateTask : DefaultTask() {
             DependencySetBuilder.build(moduleName, DependencyGraphReader.read(root))
         }
 
+    /** 載入核准檔；格式錯誤一律 fail-fast（[ApprovalStore]）。 */
+    protected fun loadApprovals(): List<Approval> = ApprovalStore.load(approvalsFile.get().asFile)
+
+    /** 以核准檔內容建立比對器。 */
+    protected fun approvalMatcher(): ApprovalMatcher = ApprovalMatcher(loadApprovals())
+
     /** 基準線目錄相對於 repo 根的 POSIX 路徑，供 `git show <ref>:<path>` 使用。 */
     protected fun baselineDirPath(): String = baselineDir.get().asFile.relativeToRepo()
 
@@ -56,5 +70,14 @@ abstract class DependencyGateTask : DefaultTask() {
 
     protected companion object {
         const val BASELINE_SUFFIX = ".txt"
+
+        /**
+         * `--base` 未指定時的候選比較基準。
+         *
+         * `origin/dev` 是常態目標分支；`origin/main` 供 fork 或尚未建立 dev 的情境退回。
+         * 放在共用處而非各任務自行定義：閘門與核准清除若用了不同的比較基準，
+         * 「什麼會被擋」與「什麼會被刪」就會分歧，而分歧的方向永遠是刪掉還擋得住的核准。
+         */
+        val DEFAULT_BASES = listOf("origin/dev", "origin/main")
     }
 }

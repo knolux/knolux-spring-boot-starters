@@ -109,7 +109,7 @@ T014 ~ T018 為 port 與 adapter（憲章 III）。兩者的邊界不得模糊�
 - [x] T029 [US1] 新增或更新 repo 根目錄 `.gitattributes`，強制 `gradle/dependency-baseline/*.txt` 為 LF。本 repo 於 Windows 開發、CI 於 Linux 執行，換行不統一會讓基準線檔每次都整檔 diff，使 R2 決策的「PR diff 可讀」失效
 - [x] T030 [US1] 執行 `./gradlew updateDependencyBaseline` 產生 `gradle/dependency-baseline/knolux-redis-spring-boot-starter.txt` 與 `knolux-s3-spring-boot-starter.txt` 並簽入。此基準線即當前 HEAD 狀態（已發布的 redis 1.4.0 / s3 1.3.0）。簽入前人工核對筆數。**實測結果：redis 49 筆、s3 62 筆**（規劃時估的 51／68 偏高，原因是估算未扣除 constraint-only 元件）。此數字另經交叉驗證：任務走訪解析圖所得，與 T023 以獨立 init script 產出的 fixture 逐字相同
 - [x] T031 [US1] 實作失敗時的 console 摘要輸出（report-format.md §3）於 `CheckDependencyCompatibilityTask`：console **MUST** 含完整阻擋清單，MUST NOT 只寫「請見報告檔」——CI 上點開 artifact 的成本高到讓人選擇忽略
-- [ ] T032 [US1] 端對端驗證 quickstart 情境 2：於臨時分支將 Spring Boot BOM 降回 4.0.6 製造反向 major 變動，確認建置失敗、所有阻擋項一次列完、`build/reports/dependency-gate/gate-report.md` 已產出，驗證後刪除臨時分支
+- [x] T032 [US1] 端對端驗證 quickstart 情境 2：於臨時分支將 Spring Boot BOM 降回 4.0.6 製造反向 major 變動，確認建置失敗、所有阻擋項一次列完、`build/reports/dependency-gate/gate-report.md` 已產出，驗證後刪除臨時分支
 
 **Checkpoint**: 閘門可獨立擋下破壞性變更（US1 交付）。此時尚無核准途徑，先不合併
 
@@ -124,17 +124,17 @@ T014 ~ T018 為 port 與 adapter（憲章 III）。兩者的邊界不得模糊�
 **為何排在 US2 之前**：兩者同為 P2，但沒有核准途徑的閘門會讓刻意的 major 升級永遠無法合併，
 屆時唯一出路是停用閘門——等同 US1 的價值歸零。故先補上出口，再做發版報告。
 
-- [ ] T033 [P] [US4] 撰寫失敗測試 `buildSrc/src/test/kotlin/com/knolux/build/depgate/ApprovalStoreTest.kt`：正常剖析多筆 `[[approval]]`（含繁體中文 `reason`）；`kind = "REMOVED"` 時 `to` 可省略；**檔案不存在 → 零筆核准且正常運作**；欄位缺漏、`kind` 填入資訊性類別（如 `PATCH`）、TOML 格式錯誤 → **fail-fast 且訊息帶出項目序號與實際內容**。MUST NOT 靜默忽略無法解析的項目——打錯字的核准會變成「沒有核准」，而使用者以為擋不住的東西已被放行
-- [ ] T034 [US4] 實作 `buildSrc/src/main/kotlin/com/knolux/build/depgate/Approval.kt` 與 `ApprovalStore.kt`（以 `org.tomlj:tomlj` 剖析，contracts/file-formats.md §2）
-- [ ] T035 [US4] 撰寫失敗測試 `buildSrc/src/test/kotlin/com/knolux/build/depgate/ApprovalMatcherTest.kt`：五欄（module / coordinate / from / to / kind）**全部逐字相符**才算核准；逐一改動任一欄位即不再放行（此為 FR-015「不得是全域開關」的實質保障）；MUST NOT 支援萬用字元或版本區間；能識別「過期核准」——檔案中存在但當次未配對到任何 delta 者
-- [ ] T036 [US4] 實作 `buildSrc/src/main/kotlin/com/knolux/build/depgate/ApprovalMatcher.kt`（純函式，data-model.md §6）
-- [ ] T037 [US4] 擴充 `GateVerdictTest.kt`：斷言阻擋性但已核准的 delta 進入 `approvedDeltas` 而不進 `blockedDeltas`；一項已核准、另一項未核准時狀態仍為 `BLOCKED` 且僅列出未核准者（spec US4 情境 2）
-- [ ] T038 [US4] 將 `ApprovalMatcher` 接進 `GateVerdict` 的狀態推導與 `CheckDependencyCompatibilityTask` 的流程
-- [ ] T039 [US4] 擴充 `ReportRendererTest.kt`：涵蓋 report-format.md 情形 B——「已核准的破壞性變動」表格含 `reason` **原文**，並保留「已核准不代表下游不受影響」的提醒；過期核准列入資訊性區塊
-- [ ] T040 [US4] 實作 `ReportRenderer` 的情形 B 渲染
-- [ ] T041 [US4] 建立 `gradle/dependency-approvals.toml`：僅含註解標頭（用途說明、`kind` 可用值、版本一動即失效的提醒），零筆核准。與 `gradle/libs.versions.toml` 同目錄同格式，維持既有慣例
-- [ ] T042 [US4] 撰寫失敗測試：`UpdateDependencyBaselineTask` 於基準線推進後清除已失配的核准項，並在 console 列出被清除的項目（FR-017）
-- [ ] T043 [US4] 實作核准清除邏輯於 `UpdateDependencyBaselineTask`
+- [x] T033 [P] [US4] 撰寫失敗測試 `buildSrc/src/test/kotlin/com/knolux/build/depgate/ApprovalStoreTest.kt`：正常剖析多筆 `[[approval]]`（含繁體中文 `reason`）；`kind = "REMOVED"` 時 `to` 可省略；**檔案不存在 → 零筆核准且正常運作**；欄位缺漏、`kind` 填入資訊性類別（如 `PATCH`）、TOML 格式錯誤 → **fail-fast 且訊息帶出項目序號與實際內容**。MUST NOT 靜默忽略無法解析的項目——打錯字的核准會變成「沒有核准」，而使用者以為擋不住的東西已被放行
+- [x] T034 [US4] 實作 `buildSrc/src/main/kotlin/com/knolux/build/depgate/Approval.kt` 與 `ApprovalStore.kt`（以 `org.tomlj:tomlj` 剖析，contracts/file-formats.md §2）
+- [x] T035 [US4] 撰寫失敗測試 `buildSrc/src/test/kotlin/com/knolux/build/depgate/ApprovalMatcherTest.kt`：五欄（module / coordinate / from / to / kind）**全部逐字相符**才算核准；逐一改動任一欄位即不再放行（此為 FR-015「不得是全域開關」的實質保障）；MUST NOT 支援萬用字元或版本區間；能識別「過期核准」——檔案中存在但當次未配對到任何 delta 者
+- [x] T036 [US4] 實作 `buildSrc/src/main/kotlin/com/knolux/build/depgate/ApprovalMatcher.kt`（純函式，data-model.md §6）
+- [x] T037 [US4] 擴充 `GateVerdictTest.kt`：斷言阻擋性但已核准的 delta 進入 `approvedDeltas` 而不進 `blockedDeltas`；一項已核准、另一項未核准時狀態仍為 `BLOCKED` 且僅列出未核准者（spec US4 情境 2）
+- [x] T038 [US4] 將 `ApprovalMatcher` 接進 `GateVerdict` 的狀態推導與 `CheckDependencyCompatibilityTask` 的流程
+- [x] T039 [US4] 擴充 `ReportRendererTest.kt`：涵蓋 report-format.md 情形 B——「已核准的破壞性變動」表格含 `reason` **原文**，並保留「已核准不代表下游不受影響」的提醒；過期核准列入資訊性區塊
+- [x] T040 [US4] 實作 `ReportRenderer` 的情形 B 渲染
+- [x] T041 [US4] 建立 `gradle/dependency-approvals.toml`：僅含註解標頭（用途說明、`kind` 可用值、版本一動即失效的提醒），零筆核准。與 `gradle/libs.versions.toml` 同目錄同格式，維持既有慣例
+- [x] T042 [US4] 撰寫失敗測試：`UpdateDependencyBaselineTask` 於基準線推進後清除已失配的核准項，並在 console 列出被清除的項目（FR-017）
+- [x] T043 [US4] 實作核准清除邏輯於 `UpdateDependencyBaselineTask`
 - [ ] T044 [US4] 端對端驗證 quickstart 情境 3：延續 T032 的失敗狀態加入核准 → 通過；再把 `to` 改成不相符版本 → **必須重新失敗**。若改了版本仍放行，代表比對過鬆，須修正
 
 **Checkpoint**: 閘門具備完整的阻擋與放行途徑，可實際投入使用

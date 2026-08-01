@@ -31,7 +31,9 @@ object ReportRenderer {
             add(renderHeader(report))
             renderBlockingSection(blockedByModule)?.let(::add)
             renderUnparseableSection(unparseable)?.let(::add)
+            renderApprovedSection(report.verdicts.flatMap { it.approvedDeltas })?.let(::add)
             renderInformationalSection(report.verdicts)?.let(::add)
+            renderStaleApprovalSection(report.staleApprovals)?.let(::add)
             renderSkippedSection(report.verdicts)?.let(::add)
             renderHowToHandle(report.blockedDeltas.firstOrNull())?.let(::add)
         }
@@ -48,8 +50,71 @@ object ReportRenderer {
 
     private fun renderVerdictLine(report: GateReport): String {
         if (report.blocked) return "❌ 阻擋 — ${report.blockedDeltas.size} 項未核准的破壞性變更"
+
+        // 已核准的筆數要**先**於資訊性筆數呈現：讀者掃過標頭就該知道「這次有破壞性變更，
+        // 只是被放行了」，而不是看到「✅ 通過」後就不再往下讀。
+        val approvedCount = report.verdicts.sumOf { it.approvedDeltas.size }
         val informationalCount = report.verdicts.sumOf { verdict -> verdict.deltas.count { !it.blocking } }
-        return if (informationalCount == 0) "✅ 通過 — 外溢依賴無變動" else "✅ 通過 — $informationalCount 項資訊性變動"
+        val clauses = listOfNotNull(
+            "$approvedCount 項破壞性變更已核准".takeIf { approvedCount > 0 },
+            "$informationalCount 項資訊性變動".takeIf { informationalCount > 0 },
+        )
+
+        return if (clauses.isEmpty()) "✅ 通過 — 外溢依賴無變動" else "✅ 通過 — ${clauses.joinToString("、")}"
+    }
+
+    /**
+     * 已核准的破壞性變動（情形 B）。
+     *
+     * 核准解除的是「建置阻擋」，不是「下游會不會壞」。少了結尾那句提醒，核准很容易被
+     * 當成「這件事處理完了」，於是揭露就不會被寫進 CHANGELOG——而沒有揭露的破壞性變更，
+     * 正是本功能一開始要解決的問題。
+     */
+    private fun renderApprovedSection(approved: List<Pair<DependencyDelta, Approval>>): String? {
+        if (approved.isEmpty()) return null
+
+        return buildString {
+            appendLine("## ✅ 已核准的破壞性變動")
+            appendLine()
+            appendLine("| 模組 | 依賴 | 基準線 | 當前 | 類別 | 核准理由 |")
+            append("|---|---|---|---|---|---|")
+            approved.forEach { (delta, approval) ->
+                appendLine()
+                append(
+                    "| `${delta.moduleName}` | `${delta.coordinate}` | ${delta.from} | ${currentCell(delta)} | " +
+                        "${categoryLabel(delta.kind)} | ${approval.reason} |",
+                )
+            }
+            appendLine()
+            appendLine()
+            append("⚠️ 已核准不代表下游不受影響。發版時仍須將上表寫入 CHANGELOG 的「升級前必讀」段落。")
+        }
+    }
+
+    /**
+     * 過期核准（data-model.md §6）。純資訊性，不影響判定。
+     *
+     * 講出來是為了讓核准檔能被清理：不講，過期項只會越積越多，
+     * 最終沒有人敢動這份檔案，也就沒有人會再審視裡面還放行著什麼。
+     */
+    private fun renderStaleApprovalSection(stale: List<Approval>): String? {
+        if (stale.isEmpty()) return null
+
+        return buildString {
+            appendLine("## ℹ️ 過期的核准")
+            appendLine()
+            appendLine("以下核准在本輪未對應到任何差異，可執行 `./gradlew updateDependencyBaseline` 一併清除。")
+            appendLine()
+            appendLine("| 模組 | 依賴 | 核准的變動 | 核准理由 |")
+            append("|---|---|---|---|")
+            stale.forEach { approval ->
+                appendLine()
+                append(
+                    "| `${approval.module}` | `${approval.coordinate}` | " +
+                        "${approval.from} → ${approval.to ?: REMOVED_CELL} | ${approval.reason} |",
+                )
+            }
+        }
     }
 
     /**
@@ -192,11 +257,19 @@ object ReportRenderer {
         DeltaKind.MINOR, DeltaKind.PATCH, DeltaKind.ADDED -> kind.displayName
     }
 
-    /** 資訊性表格的「類別」欄——簡短即可，這裡不需要讀者採取行動。 */
+    /**
+     * 資訊性與已核准表格的「類別」欄——簡短即可，這裡不需要讀者採取行動。
+     *
+     * 刻意窮舉而不留 `else`：新增 [DeltaKind] 時這裡會編譯失敗，
+     * 強迫決定該類別在報告中怎麼稱呼，而不是無聲落到 `displayName` 上。
+     */
     private fun categoryLabel(kind: DeltaKind): String = when (kind) {
         DeltaKind.PATCH -> "patch"
         DeltaKind.MINOR -> "minor"
+        DeltaKind.MAJOR -> "major"
         DeltaKind.ADDED -> "新增"
-        else -> kind.displayName
+        DeltaKind.REMOVED -> "移除"
+        DeltaKind.DOWNGRADE -> "版本後退"
+        DeltaKind.UNPARSEABLE -> "無法解析"
     }
 }

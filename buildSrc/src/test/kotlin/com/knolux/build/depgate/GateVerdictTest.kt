@@ -102,6 +102,63 @@ class GateVerdictTest {
         assertEquals(3, verdict.blockedDeltas.size)
     }
 
+    // ---------- 核准（US4） ----------
+
+    @Test
+    fun `已核准的阻擋性差異進入核准清單而非阻擋清單`() {
+        val approval = lettuceApproval()
+        val verdict = GateVerdict.evaluate(MODULE, listOf(lettuceUpgrade()), ApprovalMatcher(listOf(approval)))
+
+        assertEquals(GateStatus.PASSED, verdict.status)
+        assertTrue(verdict.blockedDeltas.isEmpty())
+        assertEquals(listOf(lettuceUpgrade() to approval), verdict.approvedDeltas)
+    }
+
+    @Test
+    fun `一項已核准另一項未核准時仍為阻擋且只列出未核准者`() {
+        // spec US4 情境 2：核准是逐筆的，放行一筆不等於放行整批。
+        val verdict = GateVerdict.evaluate(
+            MODULE,
+            listOf(
+                lettuceUpgrade(),
+                DependencyDelta(MODULE, coordinate("io.netty:netty-transport"), "4.1.125.Final", null, DeltaKind.REMOVED),
+            ),
+            ApprovalMatcher(listOf(lettuceApproval())),
+        )
+
+        assertEquals(GateStatus.BLOCKED, verdict.status)
+        assertEquals(listOf("io.netty:netty-transport"), verdict.blockedDeltas.map { it.coordinate.toString() })
+        assertEquals(1, verdict.approvedDeltas.size)
+    }
+
+    @Test
+    fun `核准的版本與實際不符時不放行`() {
+        // 與 ApprovalMatcherTest 重複是刻意的：此處確認「不相符」確實一路傳導到狀態推導，
+        // 而不是只在比對器裡回傳了 null 卻在上層被當成已核准。
+        val verdict = GateVerdict.evaluate(
+            MODULE,
+            listOf(lettuceUpgrade(to = "8.0.0.RELEASE")),
+            ApprovalMatcher(listOf(lettuceApproval())),
+        )
+
+        assertEquals(GateStatus.BLOCKED, verdict.status)
+        assertTrue(verdict.approvedDeltas.isEmpty())
+    }
+
+    @Test
+    fun `資訊性差異不會出現在核准清單中`() {
+        // 核准清單直接對應報告中「已核准的破壞性變動」表格；混入 patch 更新會讓
+        // 那份表格失去意義，讀者也就不會再認真看它。
+        val verdict = GateVerdict.evaluate(
+            MODULE,
+            listOf(delta("ch.qos.logback:logback-classic", "1.5.33", "1.5.34", DeltaKind.PATCH)),
+            ApprovalMatcher(listOf(lettuceApproval())),
+        )
+
+        assertEquals(GateStatus.PASSED, verdict.status)
+        assertTrue(verdict.approvedDeltas.isEmpty())
+    }
+
     // ---------- GateReport ----------
 
     @Test
@@ -141,7 +198,20 @@ class GateVerdictTest {
     private fun delta(raw: String, from: String, to: String, kind: DeltaKind) =
         DependencyDelta(MODULE, coordinate(raw), from, to, kind)
 
+    private fun lettuceUpgrade(to: String = "7.5.2.RELEASE") =
+        delta(LETTUCE, "6.8.2.RELEASE", to, DeltaKind.MAJOR)
+
+    private fun lettuceApproval() = Approval(
+        module = MODULE,
+        coordinate = coordinate(LETTUCE),
+        from = "6.8.2.RELEASE",
+        to = "7.5.2.RELEASE",
+        kind = DeltaKind.MAJOR,
+        reason = "隨 Spring Boot 4.1.0 升級而必然發生，已於 CHANGELOG 揭露",
+    )
+
     private companion object {
         const val MODULE = "knolux-redis-spring-boot-starter"
+        const val LETTUCE = "io.lettuce:lettuce-core"
     }
 }

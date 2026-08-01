@@ -35,6 +35,24 @@ object ConsoleRenderer {
     }
 
     /**
+     * 已清除的過期核准（FR-017）。
+     *
+     * 這裡刪掉的是**維護者手寫的內容**，因此必須逐筆列出被刪的是什麼，而不是只報筆數：
+     * 清除若刪錯，唯一還原得回來的時機就是維護者看見這段輸出的當下；
+     * 只印「已清除 2 筆」等於要求對方事後翻 git diff 才知道發生了什麼事。
+     */
+    fun renderPurgedApprovals(removed: List<Approval>, approvalsPath: String): String = buildString {
+        appendLine("已自 $approvalsPath 清除 ${removed.size} 筆過期核准（對應的差異已納入新基準線）：")
+        appendLine()
+        removed.forEach { approval ->
+            appendLine("  [${approval.kind.name}] ${approval.module}  ${approval.coordinate}")
+            appendLine("           ${approval.from} -> ${approval.to ?: REMOVED_CELL}")
+            appendLine("           理由：${approval.reason}")
+        }
+        append("如有誤刪，請自 git diff 還原後回報——核准比對過鬆或過嚴都會讓閘門失去意義。")
+    }
+
+    /**
      * 簽入的基準線與當前解析結果不一致（research.md R2 機制 M1）。
      *
      * 這種情況下閘門的比較對象本身就是錯的，因此必須先失敗；訊息要能讓人直接照做，

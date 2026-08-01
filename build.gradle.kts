@@ -106,6 +106,7 @@ val moduleRuntimeRoots = subprojects.associate { module ->
 fun DependencyGateTask.configureGateDefaults() {
     moduleRuntimeRoots.forEach { (moduleName, root) -> rootComponents.put(moduleName, root) }
     baselineDir.set(layout.projectDirectory.dir("gradle/dependency-baseline"))
+    approvalsFile.set(layout.projectDirectory.file("gradle/dependency-approvals.toml"))
     repoDir.set(layout.projectDirectory)
 }
 

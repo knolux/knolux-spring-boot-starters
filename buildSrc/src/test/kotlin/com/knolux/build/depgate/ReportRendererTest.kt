@@ -120,6 +120,63 @@ class ReportRendererTest {
     }
 
     @Nested
+    inner class 情形B_阻擋性變更已核准 {
+
+        private val markdown = ReportRenderer.renderGateReport(approvedReport())
+
+        @Test
+        fun `判定為通過並說明已核准的筆數`() {
+            assertContains("**判定**：✅ 通過 — 1 項破壞性變更已核准")
+        }
+
+        @Test
+        fun `已核准表格帶出核准理由原文`() {
+            // 理由是這份報告唯一無法自動產生的部分，也是發版時要抄進 CHANGELOG 的那一段；
+            // 被截斷或改寫，維護者就得回頭翻 TOML，等於報告沒寫。
+            assertContains("## ✅ 已核准的破壞性變動")
+            assertContains(
+                "| `knolux-redis-spring-boot-starter` | `io.lettuce:lettuce-core` | 6.8.2.RELEASE | " +
+                    "7.5.2.RELEASE | major | $REASON |",
+            )
+        }
+
+        @Test
+        fun `保留已核准不代表下游不受影響的提醒`() {
+            // 核准解除的是「建置阻擋」，不是「下游會不會壞」。少了這句，
+            // 核准會被當成「處理完了」，而揭露就不會被寫進 CHANGELOG。
+            assertContains("⚠️ 已核准不代表下游不受影響")
+            assertContains("升級前必讀")
+        }
+
+        @Test
+        fun `已核准者不進阻擋性區塊也不附處理指引`() {
+            assertFalse(markdown.contains("## ❌ 阻擋性變動"), "已核准不應仍列為阻擋，實際內容為：\n$markdown")
+            assertFalse(markdown.contains("## 如何處理阻擋性變動"), "已通過時印出處理指引會訓練讀者忽略整份報告")
+        }
+
+        @Test
+        fun `過期核准列入資訊性區塊並說明清除方式`() {
+            // FR-017 的可觀測面：不講出來，過期核准只會越積越多，
+            // 最終沒有人敢動這份檔案，也就沒有人會再審視它。
+            assertContains("## ℹ️ 過期的核准")
+            assertContains("`org.apache.commons:commons-lang3`")
+            assertContains("updateDependencyBaseline")
+        }
+
+        @Test
+        fun `沒有過期核准時不出現該區塊`() {
+            val clean = ReportRenderer.renderGateReport(
+                GateReport(comparisonBase = "`origin/dev`", verdicts = listOf(GateVerdict.evaluate(REDIS, emptyList()))),
+            )
+
+            assertFalse(clean.contains("過期的核准"), "沒有過期核准卻立一個空區塊只是雜訊")
+        }
+
+        private fun assertContains(expected: String) =
+            assertTrue(markdown.contains(expected), "報告應含『$expected』，實際內容為：\n$markdown")
+    }
+
+    @Nested
     inner class 情形C_無變動 {
 
         private val markdown = ReportRenderer.renderGateReport(
@@ -253,11 +310,40 @@ class ReportRendererTest {
         )
     }
 
+    /** 情形 B：唯一的阻擋性變更已核准，另有一筆配不到任何差異的過期核准。 */
+    private fun approvedReport(): GateReport {
+        val approval = Approval(
+            module = REDIS,
+            coordinate = DependencyCoordinate.parse("io.lettuce:lettuce-core"),
+            from = "6.8.2.RELEASE",
+            to = "7.5.2.RELEASE",
+            kind = DeltaKind.MAJOR,
+            reason = REASON,
+        )
+        val stale = Approval(
+            module = REDIS,
+            coordinate = DependencyCoordinate.parse("org.apache.commons:commons-lang3"),
+            from = "3.19.0",
+            to = "4.0.0",
+            kind = DeltaKind.MAJOR,
+            reason = "上一輪升級留下的核准",
+        )
+        val matcher = ApprovalMatcher(listOf(approval, stale))
+        val redis = GateVerdict.evaluate(
+            REDIS,
+            listOf(delta(REDIS, "io.lettuce:lettuce-core", "6.8.2.RELEASE", "7.5.2.RELEASE", DeltaKind.MAJOR)),
+            matcher,
+        )
+
+        return GateReport.of("`origin/dev`（merge-base `a1b2c3d`）", listOf(redis), matcher)
+    }
+
     private fun delta(module: String, raw: String, from: String, to: String, kind: DeltaKind) =
         DependencyDelta(module, DependencyCoordinate.parse(raw), from, to, kind)
 
     private companion object {
         const val REDIS = "knolux-redis-spring-boot-starter"
         const val S3 = "knolux-s3-spring-boot-starter"
+        const val REASON = "隨 Spring Boot 4.1.0 升級而必然發生；已於 CHANGELOG 揭露"
     }
 }

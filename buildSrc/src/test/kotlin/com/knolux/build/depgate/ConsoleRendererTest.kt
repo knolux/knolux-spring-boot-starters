@@ -88,6 +88,26 @@ class ConsoleRendererTest {
         assertTrue(stale.contains("./gradlew updateDependencyBaseline"), "必須直接給出修正指令")
     }
 
+    @Test
+    fun `清除過期核准時逐筆列出被刪的內容`() {
+        // FR-017 的清除是**刪除**維護者手寫的內容。只印「已清除 2 筆」等於要求維護者
+        // 事後翻 git diff 才知道被刪了什麼——而刪錯時最需要的正是當下就看得見。
+        val purged = ConsoleRenderer.renderPurgedApprovals(
+            removed = listOf(
+                Approval(REDIS, coordinate("io.lettuce:lettuce-core"), "6.8.2.RELEASE", "7.5.2.RELEASE", DeltaKind.MAJOR, "隨 Spring Boot 4.1.0 升級"),
+                Approval(REDIS, coordinate("io.netty:netty-transport"), "4.1.125.Final", null, DeltaKind.REMOVED, "Netty 4.1.x 線移除"),
+            ),
+            approvalsPath = "gradle/dependency-approvals.toml",
+        )
+
+        assertTrue(purged.contains("2 筆"), "應標出筆數，實際輸出為：\n$purged")
+        assertTrue(purged.contains("gradle/dependency-approvals.toml"), "應標出被改動的檔案")
+        assertTrue(purged.contains("io.lettuce:lettuce-core"), "實際輸出為：\n$purged")
+        assertTrue(purged.contains("6.8.2.RELEASE -> 7.5.2.RELEASE"), "實際輸出為：\n$purged")
+        assertTrue(purged.contains("4.1.125.Final -> （已移除）"), "REMOVED 亦須可讀，實際輸出為：\n$purged")
+        assertTrue(purged.contains("隨 Spring Boot 4.1.0 升級"), "理由須一併列出，否則刪錯了也認不出來")
+    }
+
     private fun coordinate(raw: String) = DependencyCoordinate.parse(raw)
 
     private companion object {

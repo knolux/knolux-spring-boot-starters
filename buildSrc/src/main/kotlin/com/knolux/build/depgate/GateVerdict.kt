@@ -32,21 +32,25 @@ data class GateVerdict(
         /**
          * 由差異清單推導判定結果。
          *
-         * @param findApproval 對每筆阻擋性 delta 查詢核准紀錄；預設不查（US1 階段尚無核准途徑，
-         *   US4 完成後由 `ApprovalMatcher` 接入）。
+         * @param approvals 核准比對器；預設為 [ApprovalMatcher.NONE]，代表「這個情境沒有任何核准」。
+         *   此預設值是中性元而非降級 fallback——漏傳的後果是全部阻擋性差異都被擋下，
+         *   結果吵鬧而非靜默，不會出現「以為擋得住卻已放行」的失效方向。
          */
         fun evaluate(
             moduleName: String,
             deltas: List<DependencyDelta>,
-            findApproval: (DependencyDelta) -> Approval? = { null },
+            approvals: ApprovalMatcher = ApprovalMatcher.NONE,
         ): GateVerdict {
             val blocked = mutableListOf<DependencyDelta>()
             val approved = mutableListOf<Pair<DependencyDelta, Approval>>()
 
             // 一次走完全部 delta 而非遇到第一筆就回傳（FR-012）：只回報第一項會讓維護者
             // 陷入「修一筆、重跑 CI、又冒一筆」的迴圈，一次升級可能要來回好幾輪。
+            //
+            // 只有阻擋性 delta 會查核准：資訊性變動本來就不需要放行，
+            // 讓它們進入 approvedDeltas 只會稀釋報告中「已核准的破壞性變動」表格。
             deltas.filter { it.blocking }.forEach { delta ->
-                when (val approval = findApproval(delta)) {
+                when (val approval = approvals.find(delta)) {
                     null -> blocked += delta
                     else -> approved += delta to approval
                 }

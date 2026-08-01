@@ -51,6 +51,7 @@ abstract class CheckDependencyCompatibilityTask : DependencyGateTask() {
 
         val fileSource = FileBaselineSource(baselineDir.get().asFile)
         val gitSource = GitBaselineSource(repoDir.get().asFile, comparisonBase.mergeBase, baselineDirPath())
+        val approvals = approvalMatcher()
 
         val staleProblems = mutableListOf<String>()
         val verdicts = currentDependencySets().map { (moduleName, current) ->
@@ -62,11 +63,11 @@ abstract class CheckDependencyCompatibilityTask : DependencyGateTask() {
                 is BaselineLookup.Missing -> GateVerdict.skipped(moduleName, historic.reason)
 
                 is BaselineLookup.Found ->
-                    GateVerdict.evaluate(moduleName, DeltaCalculator.calculate(historic.dependencySet, current))
+                    GateVerdict.evaluate(moduleName, DeltaCalculator.calculate(historic.dependencySet, current), approvals)
             }
         }
 
-        val report = GateReport(comparisonBase.describe, verdicts)
+        val report = GateReport.of(comparisonBase.describe, verdicts, approvals)
 
         // FR-019：先寫檔，再談成敗。反過來的話，最需要報告的那一次剛好沒有報告。
         val reportPath = writeReport(report)
@@ -127,10 +128,5 @@ abstract class CheckDependencyCompatibilityTask : DependencyGateTask() {
             "${staleProblems.size} 個模組的基準線已過期".takeIf { staleProblems.isNotEmpty() },
         )
         throw GradleException("依賴相容性閘門失敗：${reasons.joinToString("、")}；詳見上方輸出與 $reportPath。")
-    }
-
-    private companion object {
-        /** `origin/dev` 是常態目標分支；`origin/main` 供 fork 或尚未建立 dev 的情境退回。 */
-        val DEFAULT_BASES = listOf("origin/dev", "origin/main")
     }
 }
