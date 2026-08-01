@@ -17,6 +17,22 @@
 
 ## [2026-08-01] — redis 1.4.0 · s3 1.3.0
 
+### ⚠️ 升級前必讀：`knolux-redis-spring-boot-starter` 的傳遞依賴破壞性變更
+
+`spring-boot-starter-data-redis` 在 redis 模組為 **`api` scope**，傳遞依賴會直接曝露給下游。
+Spring Boot 4.1.0 帶來兩項可能影響直接使用底層型別之程式碼的變動：
+
+| 依賴 | redis 1.3.0 | redis 1.4.0 | 影響 |
+|---|---|---|---|
+| `io.lettuce:lettuce-core` | 6.8.2.RELEASE | **7.5.2.RELEASE** | **跨 major 版本** |
+| `io.netty:*` | 4.1.125 與 4.2.12 並存 | **統一為 4.2.x**（4.1.x 已移除） | Netty 4.1 API 不再可用 |
+
+直接使用 Lettuce 型別（`io.lettuce.core.ReadFrom`、`RedisClient`、`ClientOptions`，
+或自訂 `LettuceClientConfigurationBuilderCustomizer`）者，升級前請先確認 Lettuce 7 的變更說明。
+僅透過 `knolux.redis.*` 設定使用者不受影響。
+
+`knolux-s3-spring-boot-starter` 的傳遞依賴無跨 major 變動。
+
 ### Changed
 
 - **升級 Spring Boot 4.0.6 → 4.1.0**（Gradle plugin 與 `spring-boot-dependencies` BOM）。
@@ -26,6 +42,14 @@
 - CI / Publish / Javadoc workflow 的 `actions/checkout` 由 `v6` 升至 `v7`（僅影響 CI）
 - 更新根目錄與兩個模組 README 中的 Spring Boot 版本與安裝版號標示
 
+其餘傳遞依賴變動（非破壞性）：
+
+- redis — `spring-data-redis` 4.0.5 → 4.1.0、新增 `spring-messaging`、
+  `snakeyaml` 2.5 → 2.6、`logback` 1.5.32 → 1.5.34
+- s3 — `httpcore5` 5.3.6 → 5.4.x、`httpclient5` 5.6.1 → 5.6.2、
+  Netty 4.1.133 → 4.1.136 / 4.2.12 → 4.2.15
+- 兩者 — Spring Framework 7.0.7 → 7.0.8
+
 ### Added
 
 - 新增 `CHANGELOG.md`，回填自 tag 的完整發布歷史
@@ -34,7 +58,12 @@
 
 ### Notes
 
-無 API 新增或移除。本次為相容性下限提升與依賴維護，故採 MINOR 升版。
+兩個模組**自有原始碼零變更**（`v1.3.0..main` 的 `.java` diff 為空），無 API 新增或移除，
+故採 MINOR 升版。
+
+惟 redis 模組經 `api` scope 傳遞的 Lettuce 跨了 major 版本，以嚴格 SemVer 解讀亦可主張 MAJOR。
+版號已發布無法更動，故於此明確揭露。此事由發布後的完整依賴比對才發現，
+後續應於 CI 加入 API 相容性檢查（japicmp 或同類工具）以自動攔截。
 
 ---
 
