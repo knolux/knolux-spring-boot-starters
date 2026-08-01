@@ -32,9 +32,9 @@
 
 **Purpose**: 讓「可單元測試的建置邏輯」這件事先成立。此階段完成前，TDD 無法開始。
 
-- [ ] T001 建立 `buildSrc/build.gradle.kts`：套用 `kotlin-dsl` plugin，加入 `implementation("org.tomlj:tomlj:<version>")`、JUnit 5 測試依賴（`testImplementation` + `testRuntimeOnly` junit-jupiter），並設定 `tasks.test { useJUnitPlatform() }`。版本直接寫在此檔——buildSrc 無法取用 `gradle/libs.versions.toml` 的 version catalog，此為 Gradle 限制而非慣例偏離，需於檔內註解說明
-- [ ] T002 建立冒煙測試 `buildSrc/src/test/kotlin/com/knolux/build/depgate/BuildSrcSmokeTest.kt`（單一恆真斷言），執行 `./gradlew -p buildSrc test` 確認綠燈，證實測試基礎設施可用
-- [ ] T003 實測 Gradle 9.6.1 的主建置（`./gradlew build`）是否自動執行 buildSrc 的 `test` 任務，將實測結論回填 `specs/001-dep-breaking-change-gate/research.md` 的 R4「待實作時驗證的事項」。**此結論決定 T058 是否必要**——若未自動執行而 CI 也不明確執行，閘門自身的測試將從未跑過
+- [x] T001 建立 `buildSrc/build.gradle.kts`（`kotlin-dsl` plugin、`libs.tomlj`、JUnit 5 測試依賴、`useJUnitPlatform()`）與 `buildSrc/settings.gradle.kts`。**版號仍集中於 `gradle/libs.versions.toml`**：buildSrc 是獨立 build，預設看不到主專案的 version catalog，但可於其 `settings.gradle.kts` 以 `versionCatalogs { create("libs") { from(files("../gradle/libs.versions.toml")) } }` 明確接上，因此不需要把版號寫死在 buildSrc 內（憲章「依賴版本集中於 `gradle/libs.versions.toml`」得以維持）
+- [x] T002 建立冒煙測試 `buildSrc/src/test/kotlin/com/knolux/build/depgate/BuildSrcSmokeTest.kt`（單一恆真斷言），執行 `./gradlew -p buildSrc test` 確認綠燈，證實測試基礎設施可用
+- [x] T003 實測 Gradle 9.6.1 的主建置是否自動執行 buildSrc 的 `test` 任務，結論回填 `research.md` R4。**實測結果：不會執行**——在 buildSrc 放入必定失敗的測試後 `./gradlew build` 仍 `BUILD SUCCESSFUL`，task 清單只有 `:buildSrc:compileKotlin` 與 `:buildSrc:jar`。**故 T058 為必要任務，非備案**
 
 **Checkpoint**: `./gradlew -p buildSrc test` 可執行且綠燈 —— TDD 循環可以開始
 
@@ -183,7 +183,7 @@ T014 ~ T018 為 port 與 adapter（憲章 III）。兩者的邊界不得模糊�
 - [ ] T055 ⚠️ 於 `.github/workflows/ci.yml:24` 的 `actions/checkout@v7` 加上 `fetch-depth: 0`。**不改這一行，閘門在 CI 上必然無法運作**——預設淺層 clone（depth 1）取不到 merge-base，也取不到任何 tag，而失敗會表現為「找不到 ref」這類難以聯想到根因的訊息（research.md R6）
 - [ ] T056 於 `.github/workflows/ci.yml` 新增獨立步驟執行 `./gradlew checkDependencyCompatibility --base=origin/${{ github.base_ref }}`，作為與 `test` 並列的獨立步驟，不併入既有建置步驟
 - [ ] T057 於 `.github/workflows/ci.yml` 加入 `actions/upload-artifact` 上傳 `**/build/reports/dependency-gate/`，**MUST 設 `if: always()`**——閘門失敗時報告尤其重要（FR-019）
-- [ ] T058 依 T003 的實測結論，若主建置未自動執行 buildSrc 測試，於 `.github/workflows/ci.yml` 明確加入 `./gradlew -p buildSrc test` 步驟。若 T003 確認會自動執行，此任務標記為不需要並註明理由
+- [ ] T058 於 `.github/workflows/ci.yml` 明確加入 `./gradlew -p buildSrc test` 步驟。**T003 已實測確認主建置不會自動執行 buildSrc 的測試**，故此步驟為必要——遺漏將導致閘門自身的測試從未跑過，一個「用來確保正確性」的機制卻沒有任何測試保護
 - [ ] T059 於 `.github/workflows/publish.yml` 的發布步驟**之前**加入 `./gradlew checkDependencyBaseline`。此步驟建立 R2 決策的核心不變量：**任何被發布出去的 artifact，其外溢依賴集合必定等於當時簽入的基準線檔案**
 
 **Checkpoint**: CI 上的閘門與發布保護皆已生效

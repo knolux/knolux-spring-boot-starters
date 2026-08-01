@@ -129,7 +129,17 @@ M2 建立的不變量是本方案的核心保證：
 - **註解語言**：依憲章「VI. 命名與風格一致性」，KDoc 與註解一律繁體中文。
 - **命名**：憲章要求「對外型別 MUST 使用 `Knolux` 前綴」，指的是 starter 發布給下游的型別。buildSrc 型別不外流，**不加** `Knolux` 前綴，改以 package `com.knolux.build.depgate` 界定範圍。
 
-**待實作時驗證的事項**：Gradle 9.6.1 是否仍在主建置時自動執行 `buildSrc` 的 `test` 任務。近年 Gradle 對 buildSrc 生命週期有調整，不應憑印象斷定。實作時以實測確認；若未自動執行，於 `ci.yml` 明確加入 `./gradlew -p buildSrc test`，避免閘門自身的測試從未跑過。
+**已實測確認（2026-08-01，Gradle 9.6.1）**：主建置**不會**自動執行 `buildSrc` 的 `test` 任務。
+
+驗證方式為在 buildSrc 放入一個必定失敗的測試，執行 `./gradlew build`：建置仍 `BUILD SUCCESSFUL`，
+且 task 清單只出現 `:buildSrc:compileKotlin` 與 `:buildSrc:jar`，無 `:buildSrc:test`。
+
+**因此 `ci.yml` MUST 明確加入 `./gradlew -p buildSrc test` 步驟**（tasks.md T058）。
+若遺漏，閘門自身的測試將從未執行過——一個「用來確保正確性」的機制卻沒有任何測試保護，
+是本功能最諷刺也最危險的失敗模式。
+
+另一項副作用是正面的：既有的 `./gradlew build` 行為完全不受 buildSrc 影響，
+與 contracts/gradle-tasks.md「不掛在 `check` 之下」的設計一致。
 
 **已評估的替代方案**：
 
