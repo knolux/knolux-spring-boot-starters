@@ -13,13 +13,28 @@
 
 ## [Unreleased]
 
+---
+
+## [2026-08-01] — redis 1.4.0 · s3 1.3.0
+
 ### Changed
 
-- **升級 Spring Boot 4.0.6 → 4.1.0**（Gradle plugin 與 `spring-boot-dependencies` BOM）。兩個模組的最低需求同步提升為 Spring Boot 4.1.0+
-- 升級 AWS SDK v2 BOM `2.46.3` → `2.49.3`
-- 升級 Gradle wrapper `9.4.1` → `9.6.1`
-- CI / Publish / Javadoc workflow 的 `actions/checkout` 由 `v6` 升至 `v7`
-- 更新根目錄與兩個模組 README 中的 Spring Boot 版本標示
+- **升級 Spring Boot 4.0.6 → 4.1.0**（Gradle plugin 與 `spring-boot-dependencies` BOM）。
+  **兩個模組的最低需求同步提升為 Spring Boot 4.1.0+**，仍在 Spring Boot 4.0.x 的使用者請留在前一版
+- 升級 AWS SDK v2 BOM `2.46.3` → `2.49.3`（影響 `knolux-s3-spring-boot-starter`）
+- 升級 Gradle wrapper `9.4.1` → `9.6.1`（僅影響本 repo 建置）
+- CI / Publish / Javadoc workflow 的 `actions/checkout` 由 `v6` 升至 `v7`（僅影響 CI）
+- 更新根目錄與兩個模組 README 中的 Spring Boot 版本與安裝版號標示
+
+### Added
+
+- 新增 `CHANGELOG.md`，回填自 tag 的完整發布歷史
+- 導入 Spec-Driven Development：新增 `.specify/` 與專案憲章
+  `.specify/memory/constitution.md` v1.0.0（六條核心原則、技術約束、開發流程與品質閘門）
+
+### Notes
+
+無 API 新增或移除。本次為相容性下限提升與依賴維護，故採 MINOR 升版。
 
 ---
 
@@ -143,4 +158,4 @@
 - 繁體中文 Javadoc 與 GitHub Pages 發布 workflow
 - GitHub Actions CI 與 GitHub Packages 發布 workflow
 
-[Unreleased]: https://github.com/knolux/knolux-spring-boot-starters/compare/knolux-redis-spring-boot-starter/v1.3.0...HEAD
+[Unreleased]: https://github.com/knolux/knolux-spring-boot-starters/compare/knolux-redis-spring-boot-starter/v1.4.0...HEAD

@@ -19,7 +19,7 @@ Spring Boot Starter，封裝 AWS SDK v2 非同步 S3 client，支援 SeaweedFS /
 ### Gradle
 
 ```kotlin
-implementation("com.knolux:knolux-s3-spring-boot-starter:1.2.0")
+implementation("com.knolux:knolux-s3-spring-boot-starter:1.3.0")
 ```
 
 ### Maven
@@ -28,7 +28,7 @@ implementation("com.knolux:knolux-s3-spring-boot-starter:1.2.0")
 <dependency>
   <groupId>com.knolux</groupId>
   <artifactId>knolux-s3-spring-boot-starter</artifactId>
-  <version>1.2.0</version>
+  <version>1.3.0</version>
 </dependency>
 ```
 

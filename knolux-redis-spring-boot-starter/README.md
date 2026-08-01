@@ -29,7 +29,7 @@ Spring Boot Starter，透過單一 `REDIS_URL` 環境變數支援 **Sentinel（�
 
 ```kotlin
 dependencies {
-    implementation("com.knolux:knolux-redis-spring-boot-starter:1.3.0")
+    implementation("com.knolux:knolux-redis-spring-boot-starter:1.4.0")
 }
 ```
 
@@ -39,7 +39,7 @@ dependencies {
 <dependency>
     <groupId>com.knolux</groupId>
     <artifactId>knolux-redis-spring-boot-starter</artifactId>
-    <version>1.3.0</version>
+    <version>1.4.0</version>
 </dependency>
 ```
 
