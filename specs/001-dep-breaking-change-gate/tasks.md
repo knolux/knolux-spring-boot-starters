@@ -51,30 +51,30 @@ T014 ~ T018 為 port 與 adapter（憲章 III）。兩者的邊界不得模糊�
 
 ### 版本解析（FR-008 / FR-009）
 
-- [ ] T004 [P] 撰寫失敗測試 `buildSrc/src/test/kotlin/com/knolux/build/depgate/ArtifactVersionTest.kt`：正向涵蓋本專案實際出現的全部形式 `7.5.2.RELEASE`、`4.2.15.Final`、`2.49.3`、`2.6`（minor 缺項補 0）、`1.5.34`；負向涵蓋 `latest.release`、`master-SNAPSHOT`、空字串、超出 `Int` 範圍的數字段 → 皆回傳 `Unparseable` 且 `reason` **帶出原始字串**。額外斷言：`parse` MUST NOT 回傳 null、MUST NOT 拋例外（FR-009 要根除的正是靜默放行）
-- [ ] T005 實作 `buildSrc/src/main/kotlin/com/knolux/build/depgate/ArtifactVersion.kt`：`data class` 含 `raw` / `major` / `minor` / `patch` / `qualifier`，以 sealed `ParseResult`（`Parsed` / `Unparseable`）回傳，依 data-model.md §1 與 research.md R5 的切分規則（以 `.` 或 `-` 切分，取前導數字段）
+- [x] T004 [P] 撰寫失敗測試 `buildSrc/src/test/kotlin/com/knolux/build/depgate/ArtifactVersionTest.kt`：正向涵蓋本專案實際出現的全部形式 `7.5.2.RELEASE`、`4.2.15.Final`、`2.49.3`、`2.6`（minor 缺項補 0）、`1.5.34`；負向涵蓋 `latest.release`、`master-SNAPSHOT`、空字串、超出 `Int` 範圍的數字段 → 皆回傳 `Unparseable` 且 `reason` **帶出原始字串**。額外斷言：`parse` MUST NOT 回傳 null、MUST NOT 拋例外（FR-009 要根除的正是靜默放行）
+- [x] T005 實作 `buildSrc/src/main/kotlin/com/knolux/build/depgate/ArtifactVersion.kt`：`data class` 含 `raw` / `major` / `minor` / `patch` / `qualifier`，以 sealed `ParseResult`（`Parsed` / `Unparseable`）回傳，依 data-model.md §1 與 research.md R5 的切分規則（以 `.` 或 `-` 切分，取前導數字段）
 
 ### 座標與集合
 
-- [ ] T006 [P] 撰寫失敗測試 `buildSrc/src/test/kotlin/com/knolux/build/depgate/DependencyCoordinateTest.kt`：斷言 `toString()` 與 `parse()` 互為反函數，涵蓋含 `.` 與 `-` 的 group / artifact
-- [ ] T007 實作 `buildSrc/src/main/kotlin/com/knolux/build/depgate/DependencyCoordinate.kt`（data-model.md §2）
-- [ ] T008 撰寫失敗測試 `buildSrc/src/test/kotlin/com/knolux/build/depgate/DependencySetTest.kt`：斷言序列化為**決定性**輸出——完整行字典序、LF 換行、檔尾單一換行、UTF-8 無 BOM、標頭警語；剖析時忽略 `#` 註解與空行；**版本欄保留原字串不正規化**（`7.5.2.RELEASE` 不得變成 `7.5.2`）。序列化不穩定會讓基準線檔產生無意義 diff，摧毀 R2 決策的核心價值，故此為硬性斷言
-- [ ] T009 實作 `buildSrc/src/main/kotlin/com/knolux/build/depgate/DependencySet.kt`：含 `serialize()` 與 `parse()`，格式依 contracts/file-formats.md §1
+- [x] T006 [P] 撰寫失敗測試 `buildSrc/src/test/kotlin/com/knolux/build/depgate/DependencyCoordinateTest.kt`：斷言 `toString()` 與 `parse()` 互為反函數，涵蓋含 `.` 與 `-` 的 group / artifact
+- [x] T007 實作 `buildSrc/src/main/kotlin/com/knolux/build/depgate/DependencyCoordinate.kt`（data-model.md §2）
+- [x] T008 撰寫失敗測試 `buildSrc/src/test/kotlin/com/knolux/build/depgate/DependencySetTest.kt`：斷言序列化為**決定性**輸出——完整行字典序、LF 換行、檔尾單一換行、UTF-8 無 BOM、標頭警語；剖析時忽略 `#` 註解與空行；**版本欄保留原字串不正規化**（`7.5.2.RELEASE` 不得變成 `7.5.2`）。序列化不穩定會讓基準線檔產生無意義 diff，摧毀 R2 決策的核心價值，故此為硬性斷言
+- [x] T009 實作 `buildSrc/src/main/kotlin/com/knolux/build/depgate/DependencySet.kt`：含 `serialize()` 與 `parse()`，格式依 contracts/file-formats.md §1
 
 ### 差異分類（FR-006 / FR-007 / FR-007a）
 
-- [ ] T010 撰寫失敗測試 `buildSrc/src/test/kotlin/com/knolux/build/depgate/DeltaKindTest.kt`：逐一斷言七種 `DeltaKind` 的 `blocking` 屬性（`MAJOR` / `REMOVED` / `DOWNGRADE` / `UNPARSEABLE` 為 true；`MINOR` / `PATCH` / `ADDED` 為 false），以及 `DependencyDelta` 的不變條件（`ADDED` ⇒ `from == null`；`REMOVED` ⇒ `to == null`；其餘兩者皆非 null）
-- [ ] T011 實作 `buildSrc/src/main/kotlin/com/knolux/build/depgate/DeltaKind.kt` 與 `DependencyDelta.kt`：`blocking` 為 `DeltaKind` 的固有屬性（`val blocking: Boolean`），MUST NOT 由呼叫端各自判斷（data-model.md §4）
-- [ ] T012 撰寫失敗測試 `buildSrc/src/test/kotlin/com/knolux/build/depgate/DeltaCalculatorTest.kt`：七種類別各至少一例；`0.5.0 → 0.6.0` 判定為 `MAJOR`（FR-007a）；`6.x → 8.x` 為**單一項** `MAJOR` 且完整保留前後版本；僅 qualifier 變動（`1.0.0.RELEASE → 1.0.0.Final`）為 `PATCH`；版本後退為 `DOWNGRADE` 而非 `MINOR`；任一側無法解析為 `UNPARSEABLE` 且帶出原字串
-- [ ] T013 實作 `buildSrc/src/main/kotlin/com/knolux/build/depgate/DeltaCalculator.kt`：純函式，輸入兩個 `DependencySet` 輸出 `List<DependencyDelta>`
+- [x] T010 撰寫失敗測試 `buildSrc/src/test/kotlin/com/knolux/build/depgate/DeltaKindTest.kt`：逐一斷言七種 `DeltaKind` 的 `blocking` 屬性（`MAJOR` / `REMOVED` / `DOWNGRADE` / `UNPARSEABLE` 為 true；`MINOR` / `PATCH` / `ADDED` 為 false），以及 `DependencyDelta` 的不變條件（`ADDED` ⇒ `from == null`；`REMOVED` ⇒ `to == null`；其餘兩者皆非 null）
+- [x] T011 實作 `buildSrc/src/main/kotlin/com/knolux/build/depgate/DeltaKind.kt` 與 `DependencyDelta.kt`：`blocking` 為 `DeltaKind` 的固有屬性（`val blocking: Boolean`），MUST NOT 由呼叫端各自判斷（data-model.md §4）
+- [x] T012 撰寫失敗測試 `buildSrc/src/test/kotlin/com/knolux/build/depgate/DeltaCalculatorTest.kt`：七種類別各至少一例；`0.5.0 → 0.6.0` 判定為 `MAJOR`（FR-007a）；`6.x → 8.x` 為**單一項** `MAJOR` 且完整保留前後版本；僅 qualifier 變動（`1.0.0.RELEASE → 1.0.0.Final`）為 `PATCH`；版本後退為 `DOWNGRADE` 而非 `MINOR`；任一側無法解析為 `UNPARSEABLE` 且帶出原字串
+- [x] T013 實作 `buildSrc/src/main/kotlin/com/knolux/build/depgate/DeltaCalculator.kt`：純函式，輸入兩個 `DependencySet` 輸出 `List<DependencyDelta>`
 
 ### Port 與 Adapter（憲章 III）
 
-- [ ] T014 [P] 撰寫失敗測試 `buildSrc/src/test/kotlin/com/knolux/build/depgate/FileBaselineSourceTest.kt`：檔案存在 → 回傳解析後的 `DependencySet`；檔案不存在 → 回傳「無基準線」而非拋例外（FR-005 要求跳過而非失敗）
-- [ ] T015 定義 port `buildSrc/src/main/kotlin/com/knolux/build/depgate/BaselineSource.kt` 並實作 adapter `FileBaselineSource.kt`
-- [ ] T016 撰寫失敗測試 `buildSrc/src/test/kotlin/com/knolux/build/depgate/GitBaselineSourceTest.kt`：以 JUnit `@TempDir` 建立臨時 git repo（`git init` + commit 一份基準線檔）驗證 `git show <ref>:<path>` 取值正確；ref 不存在、檔案在該 ref 不存在 → 皆回傳「無基準線」（research.md R6）
-- [ ] T017 實作 `buildSrc/src/main/kotlin/com/knolux/build/depgate/GitBaselineSource.kt`：外呼 `git show <ref>:<path>`，這是整個功能中唯一接觸 git 的位置
-- [ ] T018 實作 `buildSrc/src/main/kotlin/com/knolux/build/depgate/ResolvedDependencyReader.kt`：自 `configurations.getByName("runtimeClasspath").incoming.resolutionResult.allComponents` 取 `ModuleComponentIdentifier`，排除本 repo 自身的 project 依賴。**MUST NOT 剖析 `dependencies` 任務的文字輸出**——research.md R1 已實證該輸出混雜請求版本與解析版本（Netty `4.2.13.Final` 與 `4.2.15.Final` 同時出現），文字剖析會靜默產生錯誤結果
+- [x] T014 [P] 撰寫失敗測試 `buildSrc/src/test/kotlin/com/knolux/build/depgate/FileBaselineSourceTest.kt`：檔案存在 → 回傳解析後的 `DependencySet`；檔案不存在 → 回傳「無基準線」而非拋例外（FR-005 要求跳過而非失敗）
+- [x] T015 定義 port `buildSrc/src/main/kotlin/com/knolux/build/depgate/BaselineSource.kt` 並實作 adapter `FileBaselineSource.kt`
+- [x] T016 撰寫失敗測試 `buildSrc/src/test/kotlin/com/knolux/build/depgate/GitBaselineSourceTest.kt`：以 JUnit `@TempDir` 建立臨時 git repo（`git init` + commit 一份基準線檔）驗證 `git show <ref>:<path>` 取值正確；ref 不存在、檔案在該 ref 不存在 → 皆回傳「無基準線」（research.md R6）
+- [x] T017 實作 `buildSrc/src/main/kotlin/com/knolux/build/depgate/GitBaselineSource.kt`：外呼 `git show <ref>:<path>`，這是整個功能中唯一接觸 git 的位置
+- [x] T018 實作 `buildSrc/src/main/kotlin/com/knolux/build/depgate/ResolvedDependencyReader.kt`：自 `configurations.getByName("runtimeClasspath").incoming.resolutionResult.allComponents` 取 `ModuleComponentIdentifier`，排除本 repo 自身的 project 依賴。**MUST NOT 剖析 `dependencies` 任務的文字輸出**——research.md R1 已實證該輸出混雜請求版本與解析版本（Netty `4.2.13.Final` 與 `4.2.15.Final` 同時出現），文字剖析會靜默產生錯誤結果
 
 **Checkpoint**: 純邏輯層與 adapter 層完成且測試全綠 —— 四個 user story 可開始（若人力允許可平行）
 
