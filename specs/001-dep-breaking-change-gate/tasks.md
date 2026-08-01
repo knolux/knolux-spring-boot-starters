@@ -90,25 +90,25 @@ T014 ~ T018 為 port 與 adapter（憲章 III）。兩者的邊界不得模糊�
 
 ### 判定與報告（TDD）
 
-- [ ] T019 [US1] 撰寫失敗測試 `buildSrc/src/test/kotlin/com/knolux/build/depgate/GateVerdictTest.kt`：狀態推導三分支——基準線不存在 → `SKIPPED_NO_BASELINE` 且 `skipReason` 非空；`blockedDeltas` 非空 → `BLOCKED`；其餘 → `PASSED`
-- [ ] T020 [US1] 實作 `buildSrc/src/main/kotlin/com/knolux/build/depgate/GateVerdict.kt` 與 `GateReport.kt`（data-model.md §7 / §8）
-- [ ] T021 [US1] 撰寫失敗測試 `buildSrc/src/test/kotlin/com/knolux/build/depgate/ReportRendererTest.kt`：涵蓋 report-format.md 的情形 A（阻擋）、C（無變動）、D（跳過模組）、E（無法解析）。硬性斷言：說明文字為繁體中文（FR-022）、阻擋性與資訊性為**不同的區塊標題**（FR-020）、表格為標準 GFM 不依賴渲染擴充（FR-021）、版本字串原文呈現、依賴座標以反引號包覆
-- [ ] T022 [US1] 實作 `buildSrc/src/main/kotlin/com/knolux/build/depgate/ReportRenderer.kt`：純函式，`GateReport` → Markdown 字串。「阻擋性變動」區塊的表格結構須與 `CHANGELOG.md:20-34` 既有的「⚠️ 升級前必讀」寫法對齊，使其可原文貼入
+- [x] T019 [US1] 撰寫失敗測試 `buildSrc/src/test/kotlin/com/knolux/build/depgate/GateVerdictTest.kt`：狀態推導三分支——基準線不存在 → `SKIPPED_NO_BASELINE` 且 `skipReason` 非空；`blockedDeltas` 非空 → `BLOCKED`；其餘 → `PASSED`
+- [x] T020 [US1] 實作 `buildSrc/src/main/kotlin/com/knolux/build/depgate/GateVerdict.kt` 與 `GateReport.kt`（data-model.md §7 / §8）
+- [x] T021 [US1] 撰寫失敗測試 `buildSrc/src/test/kotlin/com/knolux/build/depgate/ReportRendererTest.kt`：涵蓋 report-format.md 的情形 A（阻擋）、C（無變動）、D（跳過模組）、E（無法解析）。硬性斷言：說明文字為繁體中文（FR-022）、阻擋性與資訊性為**不同的區塊標題**（FR-020）、表格為標準 GFM 不依賴渲染擴充（FR-021）、版本字串原文呈現、依賴座標以反引號包覆
+- [x] T022 [US1] 實作 `buildSrc/src/main/kotlin/com/knolux/build/depgate/ReportRenderer.kt`：純函式，`GateReport` → Markdown 字串。「阻擋性變動」區塊的表格結構須與 `CHANGELOG.md:20-34` 既有的「⚠️ 升級前必讀」寫法對齊，使其可原文貼入
 
 ### SC-001 回歸測試（本功能存在的理由）
 
-- [ ] T023 [US1] 擷取 SC-001 的**雙側** fixture 至 `buildSrc/src/test/resources/fixtures/`：撰寫暫時性 init script（註冊一個以 `ResolutionResult` 輸出基準線檔格式的 dump 任務），分別於 `git worktree add /tmp/v130 knolux-redis-spring-boot-starter/v1.3.0` 的工作區與當前 HEAD 執行，產出 `redis-v1.3.0-baseline.txt` 與 `redis-current-baseline.txt`，完成後 `git worktree remove /tmp/v130`。**兩側都要簽入**——若當前側改為執行期即時解析，測試會隨日後版本升級而失效，SC-001 的回歸保護將悄悄消失
-- [ ] T024 [US1] 撰寫回歸測試 `buildSrc/src/test/kotlin/com/knolux/build/depgate/Regression20260801Test.kt`：以 T023 的兩份 fixture 餵入 `DeltaCalculator`，斷言**同時**產出 `io.lettuce:lettuce-core` 6.8.2.RELEASE → 7.5.2.RELEASE 的 `MAJOR` **與** `io.netty:*` 4.1.x 的 `REMOVED`。只斷言 Lettuce 一項**不算通過**——那正是當時人工比對第一遍犯的錯，本測試的全部價值就在防止同樣的漏看
+- [x] T023 [US1] 擷取 SC-001 的**雙側** fixture 至 `buildSrc/src/test/resources/fixtures/`：撰寫暫時性 init script（註冊一個以 `ResolutionResult` 輸出基準線檔格式的 dump 任務），分別於 `git worktree add /tmp/v130 knolux-redis-spring-boot-starter/v1.3.0` 的工作區與當前 HEAD 執行，產出 `redis-v1.3.0-baseline.txt` 與 `redis-current-baseline.txt`，完成後 `git worktree remove /tmp/v130`。**兩側都要簽入**——若當前側改為執行期即時解析，測試會隨日後版本升級而失效，SC-001 的回歸保護將悄悄消失
+- [x] T024 [US1] 撰寫回歸測試 `buildSrc/src/test/kotlin/com/knolux/build/depgate/Regression20260801Test.kt`：以 T023 的兩份 fixture 餵入 `DeltaCalculator`，斷言**同時**產出 `io.lettuce:lettuce-core` 6.8.2.RELEASE → 7.5.2.RELEASE 的 `MAJOR` **與** `io.netty:*` 4.1.x 的 `REMOVED`。只斷言 Lettuce 一項**不算通過**——那正是當時人工比對第一遍犯的錯，本測試的全部價值就在防止同樣的漏看
 
 ### 任務層（composition root）
 
-- [ ] T025 [US1] 實作 `buildSrc/src/main/kotlin/com/knolux/build/depgate/task/CheckDependencyBaselineTask.kt`：解析當前 `runtimeClasspath` 並斷言與簽入的基準線檔逐字相同，不一致時失敗並列出差異行與修正指令 `./gradlew updateDependencyBaseline`（research.md R2 的機制 M1）
-- [ ] T026 [US1] 實作 `buildSrc/src/main/kotlin/com/knolux/build/depgate/task/UpdateDependencyBaselineTask.kt`：以當前解析結果覆寫各模組基準線檔，console 列出新增／移除／變更筆數。**明確不做**：不執行任何 git 操作、不 commit（憲章 Governance 禁止直接推送 `main`）
-- [ ] T027 [US1] 實作 `buildSrc/src/main/kotlin/com/knolux/build/depgate/task/CheckDependencyCompatibilityTask.kt`：`--base=<git-ref>` 選項（預設 `origin/dev`，不存在時退回 `origin/main`），流程依 contracts/gradle-tasks.md。**兩項順序為硬性要求**：(1) 所有模組所有差異一次算完才決定成敗，MUST NOT 遇到第一項阻擋即中止（FR-012）；(2) 報告寫檔 MUST 在拋出 `GradleException` **之前**完成（FR-019）
-- [ ] T028 [US1] 於根 `build.gradle.kts` 的 `subprojects {}` 註冊上述三個任務（group 為 `verification`）並加上根層級聚合任務。**MUST NOT** 掛在 `check` 之下——`check` 由 `build` 觸發，而閘門需要 git 歷史與遠端 ref，掛上去會讓淺層 clone 或無 git 環境的一般建置直接失敗。模組層的 `build.gradle.kts` **零變更**（憲章「技術與相容性約束」）
-- [ ] T029 [US1] 新增或更新 repo 根目錄 `.gitattributes`，強制 `gradle/dependency-baseline/*.txt` 為 LF。本 repo 於 Windows 開發、CI 於 Linux 執行，換行不統一會讓基準線檔每次都整檔 diff，使 R2 決策的「PR diff 可讀」失效
-- [ ] T030 [US1] 執行 `./gradlew updateDependencyBaseline` 產生 `gradle/dependency-baseline/knolux-redis-spring-boot-starter.txt` 與 `knolux-s3-spring-boot-starter.txt` 並簽入。此基準線即當前 HEAD 狀態（已發布的 redis 1.4.0 / s3 1.3.0）。簽入前人工核對筆數約為 redis 51 筆、s3 68 筆
-- [ ] T031 [US1] 實作失敗時的 console 摘要輸出（report-format.md §3）於 `CheckDependencyCompatibilityTask`：console **MUST** 含完整阻擋清單，MUST NOT 只寫「請見報告檔」——CI 上點開 artifact 的成本高到讓人選擇忽略
+- [x] T025 [US1] 實作 `buildSrc/src/main/kotlin/com/knolux/build/depgate/task/CheckDependencyBaselineTask.kt`：解析當前 `runtimeClasspath` 並斷言與簽入的基準線檔逐字相同，不一致時失敗並列出差異行與修正指令 `./gradlew updateDependencyBaseline`（research.md R2 的機制 M1）
+- [x] T026 [US1] 實作 `buildSrc/src/main/kotlin/com/knolux/build/depgate/task/UpdateDependencyBaselineTask.kt`：以當前解析結果覆寫各模組基準線檔，console 列出新增／移除／變更筆數。**明確不做**：不執行任何 git 操作、不 commit（憲章 Governance 禁止直接推送 `main`）
+- [x] T027 [US1] 實作 `buildSrc/src/main/kotlin/com/knolux/build/depgate/task/CheckDependencyCompatibilityTask.kt`：`--base=<git-ref>` 選項（預設 `origin/dev`，不存在時退回 `origin/main`），流程依 contracts/gradle-tasks.md。**兩項順序為硬性要求**：(1) 所有模組所有差異一次算完才決定成敗，MUST NOT 遇到第一項阻擋即中止（FR-012）；(2) 報告寫檔 MUST 在拋出 `GradleException` **之前**完成（FR-019）
+- [x] T028 [US1] 於根 `build.gradle.kts` 註冊上述三個任務（group 為 `verification`）。**規劃修正**：原訂「於 `subprojects {}` 每模組註冊一份並加上根層級聚合任務」不可行——Gradle 對未加專案前綴的任務名會同時觸發根與所有子專案，且每模組各自拋出例外會使 FR-012（所有模組所有差異一次算完才決定成敗）在未加 `--continue` 時失效。改為**只註冊於根專案、單一任務處理全部模組**，同時滿足 FR-012 與「單一份跨模組報告」。因此 `:<module>:checkDependencyCompatibility` 不再存在（contracts/gradle-tasks.md 已同步修正）。**MUST NOT** 掛在 `check` 之下——`check` 由 `build` 觸發，而閘門需要 git 歷史與遠端 ref，掛上去會讓淺層 clone 或無 git 環境的一般建置直接失敗。模組層的 `build.gradle.kts` **零變更**（憲章「技術與相容性約束」）
+- [x] T029 [US1] 新增或更新 repo 根目錄 `.gitattributes`，強制 `gradle/dependency-baseline/*.txt` 為 LF。本 repo 於 Windows 開發、CI 於 Linux 執行，換行不統一會讓基準線檔每次都整檔 diff，使 R2 決策的「PR diff 可讀」失效
+- [x] T030 [US1] 執行 `./gradlew updateDependencyBaseline` 產生 `gradle/dependency-baseline/knolux-redis-spring-boot-starter.txt` 與 `knolux-s3-spring-boot-starter.txt` 並簽入。此基準線即當前 HEAD 狀態（已發布的 redis 1.4.0 / s3 1.3.0）。簽入前人工核對筆數。**實測結果：redis 49 筆、s3 62 筆**（規劃時估的 51／68 偏高，原因是估算未扣除 constraint-only 元件）。此數字另經交叉驗證：任務走訪解析圖所得，與 T023 以獨立 init script 產出的 fixture 逐字相同
+- [x] T031 [US1] 實作失敗時的 console 摘要輸出（report-format.md §3）於 `CheckDependencyCompatibilityTask`：console **MUST** 含完整阻擋清單，MUST NOT 只寫「請見報告檔」——CI 上點開 artifact 的成本高到讓人選擇忽略
 - [ ] T032 [US1] 端對端驗證 quickstart 情境 2：於臨時分支將 Spring Boot BOM 降回 4.0.6 製造反向 major 變動，確認建置失敗、所有阻擋項一次列完、`build/reports/dependency-gate/gate-report.md` 已產出，驗證後刪除臨時分支
 
 **Checkpoint**: 閘門可獨立擋下破壞性變更（US1 交付）。此時尚無核准途徑，先不合併

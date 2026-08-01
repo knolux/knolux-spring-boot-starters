@@ -2,9 +2,15 @@
 
 **Feature**: [../spec.md](../spec.md) | **Date**: 2026-08-01
 
-閘門對維護者與 CI 曝露的唯一介面就是這四個 Gradle 任務。任務註冊於根 `build.gradle.kts` 的
-`subprojects {}` 區塊（每模組一份）並加上根層級聚合任務，符合憲章「模組層的 `build.gradle.kts`
-只宣告 `description` 與 `dependencies`」。
+閘門對維護者與 CI 曝露的唯一介面就是這四個 Gradle 任務。任務**只註冊於根 `build.gradle.kts`**，
+每個任務單一實例處理全部模組，符合憲章「模組層的 `build.gradle.kts` 只宣告 `description`
+與 `dependencies`」——模組層零變更。
+
+**為何不在 `subprojects {}` 每模組註冊一份**：Gradle 對未加專案前綴的任務名會同時觸發根專案
+與所有子專案的同名任務；更關鍵的是，每模組各自拋出例外會讓 FR-012（所有模組所有差異一次
+算完才決定成敗）在未加 `--continue` 時失效，且無法產出單一份跨模組報告。代價是
+`:<module>:checkDependencyCompatibility` 這種逐模組呼叫不再可用——以本 repo 僅兩個模組、
+整輪執行不到兩秒而言，這個代價可以接受。
 
 group 一律為 `verification`。
 
@@ -16,7 +22,6 @@ group 一律為 `verification`。
 
 ```bash
 ./gradlew checkDependencyCompatibility                      # 全部模組（FR-023 的單一指令）
-./gradlew :knolux-redis-spring-boot-starter:checkDependencyCompatibility
 ./gradlew checkDependencyCompatibility --base=origin/dev    # 明確指定比較基準
 ```
 

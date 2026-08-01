@@ -1,3 +1,7 @@
 /gradlew text eol=lf
 *.bat text eol=crlf
 *.jar binary
+
+# 依賴基準線於 Windows 產生、於 Linux CI 驗證，換行不統一會讓每次更新都變成整檔 diff，
+# 使「基準線變動直接出現在 PR diff 供人審閱」這個設計前提失效。
+/gradle/dependency-baseline/*.txt text eol=lf
