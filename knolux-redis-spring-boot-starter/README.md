@@ -2,7 +2,7 @@
 
 Spring Boot Starter，透過單一 `REDIS_URL` 環境變數支援 **Sentinel（高可用）** 與 **Standalone** 兩種連線模式。
 
-技術棧：**Java 25 LTS** · **Spring Boot 4.0.6** · **Spring Framework 7** · **Lettuce** · **Virtual Thread Compatible**
+技術棧：**Java 25 LTS** · **Spring Boot 4.1.0** · **Spring Framework 7** · **Lettuce** · **Virtual Thread Compatible**
 
 ## 功能特色
 
@@ -19,7 +19,7 @@ Spring Boot Starter，透過單一 `REDIS_URL` 環境變數支援 **Sentinel（�
 ## 環境需求
 
 - **Java 25 LTS**（Temurin 建議）
-- **Spring Boot 4.0.6+**
+- **Spring Boot 4.1.0+**
 
 ---
 
@@ -29,7 +29,7 @@ Spring Boot Starter，透過單一 `REDIS_URL` 環境變數支援 **Sentinel（�
 
 ```kotlin
 dependencies {
-    implementation("com.knolux:knolux-redis-spring-boot-starter:1.3.0")
+    implementation("com.knolux:knolux-redis-spring-boot-starter:1.4.0")
 }
 ```
 
@@ -39,7 +39,7 @@ dependencies {
 <dependency>
     <groupId>com.knolux</groupId>
     <artifactId>knolux-redis-spring-boot-starter</artifactId>
-    <version>1.3.0</version>
+    <version>1.4.0</version>
 </dependency>
 ```
 
