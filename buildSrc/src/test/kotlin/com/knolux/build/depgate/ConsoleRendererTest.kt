@@ -70,13 +70,15 @@ class ConsoleRendererTest {
 
     @Test
     fun `基準線過期時列出差異行與修正指令`() {
-        // research.md R2 機制 M1：簽入的基準線與當前解析不一致時，閘門的比較對象本身就是錯的，
-        // 因此必須先失敗。訊息要能讓人直接照做，而不是先去讀文件。
+        // research.md R2 機制 M1：簽入的基準線與當前解析不一致時，留給下一個人的比較對象
+        // 就是一份不真實的檔案。訊息要能讓人直接照做，而不是先去讀文件。
         val stale = ConsoleRenderer.renderStaleBaseline(
-            moduleName = REDIS,
-            deltas = listOf(
-                DependencyDelta(REDIS, coordinate("io.lettuce:lettuce-core"), "6.8.2.RELEASE", "7.5.2.RELEASE", DeltaKind.MAJOR),
-                DependencyDelta(REDIS, coordinate("org.springframework:spring-messaging"), null, "7.0.8", DeltaKind.ADDED),
+            BaselineStaleness(
+                REDIS,
+                listOf(
+                    DependencyDelta(REDIS, coordinate("io.lettuce:lettuce-core"), "6.8.2.RELEASE", "7.5.2.RELEASE", DeltaKind.MAJOR),
+                    DependencyDelta(REDIS, coordinate("org.springframework:spring-messaging"), null, "7.0.8", DeltaKind.ADDED),
+                ),
             ),
             baselinePath = "gradle/dependency-baseline/$REDIS.txt",
         )
@@ -86,6 +88,30 @@ class ConsoleRendererTest {
         assertTrue(stale.contains("+ io.lettuce:lettuce-core:7.5.2.RELEASE"), "應以 + 標出當前側")
         assertTrue(stale.contains("+ org.springframework:spring-messaging:7.0.8"), "新增項只有當前側")
         assertTrue(stale.contains("./gradlew updateDependencyBaseline"), "必須直接給出修正指令")
+    }
+
+    /**
+     * 落差全屬非阻擋性時閘門只警告不失敗（FR-011），而警告最容易被無視。
+     *
+     * 因此這段訊息除了差異行與修正指令，還**必須**寫出兩件事：
+     * 這次為何沒讓建置失敗，以及不補會在哪裡爆——否則讀者只會學到
+     * 「這行黃字每週都出現，不用理」，等到發版前 `checkDependencyBaseline` 紅燈才回頭找原因。
+     */
+    @Test
+    fun `落差非阻擋時說明為何不失敗與不補的後果`() {
+        val tolerated = ConsoleRenderer.renderToleratedStaleBaseline(
+            BaselineStaleness(
+                S3,
+                listOf(DependencyDelta(S3, coordinate("software.amazon.awssdk:s3"), "2.49.3", "2.49.4", DeltaKind.PATCH)),
+            ),
+            baselinePath = "gradle/dependency-baseline/$S3.txt",
+        )
+
+        assertTrue(tolerated.contains("- software.amazon.awssdk:s3:2.49.3"), "實際輸出為：\n$tolerated")
+        assertTrue(tolerated.contains("+ software.amazon.awssdk:s3:2.49.4"), "實際輸出為：\n$tolerated")
+        assertTrue(tolerated.contains("./gradlew updateDependencyBaseline"), "必須直接給出修正指令")
+        assertTrue(tolerated.contains("checkDependencyBaseline"), "須點出不補的話會在發版前被擋下")
+        assertFalse(tolerated.contains("已過期："), "非阻擋性落差不得沿用失敗語氣，實際輸出為：\n$tolerated")
     }
 
     @Test
@@ -112,6 +138,7 @@ class ConsoleRendererTest {
 
     private companion object {
         const val REDIS = "knolux-redis-spring-boot-starter"
+        const val S3 = "knolux-s3-spring-boot-starter"
         const val REPORT_PATH = "build/reports/dependency-gate/gate-report.md"
     }
 }

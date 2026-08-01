@@ -1,8 +1,8 @@
 package com.knolux.build.depgate.task
 
 import com.knolux.build.depgate.BaselineLookup
+import com.knolux.build.depgate.BaselineStaleness
 import com.knolux.build.depgate.ConsoleRenderer
-import com.knolux.build.depgate.DeltaCalculator
 import com.knolux.build.depgate.FileBaselineSource
 import org.gradle.api.GradleException
 import org.gradle.api.tasks.TaskAction
@@ -34,9 +34,11 @@ abstract class CheckDependencyBaselineTask : DependencyGateTask() {
             when (val lookup = source.load(moduleName)) {
                 is BaselineLookup.Missing -> lookup.reason
 
-                is BaselineLookup.Found -> DeltaCalculator.calculate(lookup.dependencySet, current)
-                    .takeIf { it.isNotEmpty() }
-                    ?.let { ConsoleRenderer.renderStaleBaseline(moduleName, it, baselineFile(moduleName).relativeToRepo()) }
+                // 此處**不看** BaselineStaleness.blocking：閘門本體容忍非阻擋性落差（FR-011），
+                // 但發版是不可回收的動作，任何落差都代表發布出去的 artifact 與簽入基準線不符，
+                // M2 的不變量因此不成立。容忍的界線只到合併前為止。
+                is BaselineLookup.Found -> BaselineStaleness.detect(lookup.dependencySet, current)
+                    ?.let { ConsoleRenderer.renderStaleBaseline(it, baselineFile(moduleName).relativeToRepo()) }
             }
         }
 

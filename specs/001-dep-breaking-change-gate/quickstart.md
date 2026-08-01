@@ -93,11 +93,15 @@ git switch - && git branch -D tmp/verify-gate
 
 **預期**：建置**通過**。該變動出現在報告的「資訊性變動」區塊。
 
+**同時確認**：即使**未**執行 `updateDependencyBaseline`（基準線檔仍停在舊版號），建置依然通過，
+只在 console 出現一段警告，內容須說明「以上皆非阻擋性變動，依 FR-011 不讓建置失敗」
+以及發版前仍須補上。Dependabot 不會替你重新產生基準線，若這裡失敗，等於每支 bot PR 都紅燈。
+
 此情境決定閘門能否長期存活——若 Dependabot 的每週 PR 都紅燈，閘門三週內就會被停用。
 
 ---
 
-## 情境 5：忘記重新產生基準線（research.md M1）
+## 情境 5：忘記重新產生基準線（research.md M1 / FR-024）
 
 ```bash
 # 任意調整一個依賴版本但不執行 updateDependencyBaseline
@@ -105,6 +109,15 @@ git switch - && git branch -D tmp/verify-gate
 ```
 
 **預期**：失敗，訊息明確指示執行 `./gradlew updateDependencyBaseline`，並列出不一致的行。
+
+此任務是**發版前**的一致性驗證，任何落差皆失敗，不套用情境 4 的寬容——
+發布是不可回收的動作。閘門本體則相反：僅在落差含阻擋性項目時失敗（FR-011a），
+可用下列指令對照兩者的差異：
+
+```bash
+./gradlew checkDependencyCompatibility --base=HEAD   # patch 落差 → 通過（僅警告）
+./gradlew checkDependencyBaseline                    # 同樣的落差 → 失敗
+```
 
 ---
 

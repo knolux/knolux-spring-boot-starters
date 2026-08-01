@@ -70,6 +70,38 @@ class ReportRendererTest {
             assertContains("無變動。")
         }
 
+        /**
+         * US3／FR-010、FR-011：非阻擋性變動 MUST NOT 出現在阻擋性區塊。
+         *
+         * 只斷言「有出現在報告裡」不夠——patch 若同時被列進阻擋性表格，字串仍然找得到，
+         * 但維護者看到的是一份說他的 Dependabot PR 被 patch 擋下的報告。誤擋的代價不是
+         * 多按一次重跑，是閘門被關掉。
+         *
+         * `ADDED` 特別點名：直覺上「多了東西」聽起來也像破壞性變更，是最容易被誤歸的一類。
+         */
+        @Test
+        fun `patch 與 minor 與新增只出現在資訊性區塊`() {
+            val blocking = sectionOf("## ❌ 阻擋性變動（需核准或還原）")
+
+            listOf(
+                "ch.qos.logback:logback-classic",
+                "org.springframework.data:spring-data-redis",
+                "org.springframework:spring-messaging",
+            ).forEach { coordinate ->
+                assertFalse(
+                    blocking.contains(coordinate),
+                    "『$coordinate』屬非阻擋性變動，不得出現在阻擋性區塊：\n$blocking",
+                )
+            }
+        }
+
+        /** 取出以 [heading] 起始的區塊；區塊由 `---` 分隔（見 `ReportRenderer.SECTION_SEPARATOR`）。 */
+        private fun sectionOf(heading: String): String {
+            val section = markdown.split("\n\n---\n\n").firstOrNull { it.startsWith(heading) }
+            assertTrue(section != null, "報告應含『$heading』區塊，實際內容為：\n$markdown")
+            return section!!
+        }
+
         @Test
         fun `附上如何處理的具體指引與 toml 範本`() {
             // FR-018：只說「被擋住了」而不說怎麼辦，維護者的下一步是去找人問，不是自己解決。

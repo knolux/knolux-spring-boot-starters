@@ -53,21 +53,37 @@ object ConsoleRenderer {
     }
 
     /**
-     * 簽入的基準線與當前解析結果不一致（research.md R2 機制 M1）。
+     * 簽入的基準線與當前解析結果不一致，且落差含阻擋性項目（research.md R2 機制 M1）。
      *
-     * 這種情況下閘門的比較對象本身就是錯的，因此必須先失敗；訊息要能讓人直接照做，
-     * 而不是先去讀文件才知道要跑哪一個任務。
+     * 訊息要能讓人直接照做，而不是先去讀文件才知道要跑哪一個任務。
      */
-    fun renderStaleBaseline(moduleName: String, deltas: List<DependencyDelta>, baselinePath: String): String =
-        buildString {
-            appendLine("模組 $moduleName 的基準線檔已過期：$baselinePath")
-            appendLine("與當前 runtimeClasspath 解析結果有 ${deltas.size} 處不一致：")
-            appendLine()
-            deltas.forEach { delta ->
-                delta.from?.let { appendLine("  - ${delta.coordinate}:$it") }
-                delta.to?.let { appendLine("  + ${delta.coordinate}:$it") }
-            }
-            appendLine()
-            append("請執行 ./gradlew updateDependencyBaseline 重新產生後一併提交。")
+    fun renderStaleBaseline(staleness: BaselineStaleness, baselinePath: String): String = buildString {
+        appendLine("模組 ${staleness.moduleName} 的基準線檔已過期：$baselinePath")
+        append(staleBaselineBody(staleness))
+        append("請執行 ./gradlew updateDependencyBaseline 重新產生後一併提交。")
+    }
+
+    /**
+     * 落差全屬非阻擋性——依 FR-011 只警告不失敗。
+     *
+     * 警告很容易被無視，所以除了差異行與修正指令，還必須寫出「這次為何沒擋下來」與
+     * 「不補會在哪裡爆」。少了這兩句，讀者學到的會是「這行黃字每週都出現，不用理」，
+     * 等到發版前 `checkDependencyBaseline` 紅燈才回頭找原因——而那是最不該被擋住的時刻。
+     */
+    fun renderToleratedStaleBaseline(staleness: BaselineStaleness, baselinePath: String): String = buildString {
+        appendLine("模組 ${staleness.moduleName} 的基準線檔尚未跟上：$baselinePath")
+        append(staleBaselineBody(staleness))
+        appendLine("以上皆非阻擋性變動，依 FR-011 不讓建置失敗；")
+        append("但發版前的 checkDependencyBaseline 會逐字比對，屆時仍須執行 ./gradlew updateDependencyBaseline 補上。")
+    }
+
+    private fun staleBaselineBody(staleness: BaselineStaleness): String = buildString {
+        appendLine("與當前 runtimeClasspath 解析結果有 ${staleness.deltas.size} 處不一致：")
+        appendLine()
+        staleness.deltas.forEach { delta ->
+            delta.from?.let { appendLine("  - ${delta.coordinate}:$it") }
+            delta.to?.let { appendLine("  + ${delta.coordinate}:$it") }
         }
+        appendLine()
+    }
 }

@@ -172,9 +172,17 @@ T014 ~ T018 為 port 與 adapter（憲章 III）。兩者的邊界不得模糊�
 **說明**：此故事的分類規則已由 Phase 2 的 `DeltaKind.blocking` 落實，本階段是**證明**它成立的驗證層。
 這決定閘門能長期存活還是三週後被停用——若每支 bot PR 都紅燈，維護者會關掉閘門，前面所有價值隨之歸零。
 
-- [ ] T052 [P] [US3] 撰寫失敗測試 `buildSrc/src/test/kotlin/com/knolux/build/depgate/DependabotScenarioTest.kt`：以 `GateVerdict` 層級驗證三種 Dependabot 型變更集——僅 patch 前進、僅 minor 前進（1.x 以上）、僅新增依賴——狀態皆為 `PASSED` 且 `blockedDeltas` 為空
-- [ ] T053 [US3] 擴充 `ReportRendererTest.kt`：斷言上述三類出現在「ℹ️ 資訊性變動」區塊而非阻擋性區塊，特別驗證 `ADDED`（FR-011 明訂新增不阻擋，此為最易被誤歸為阻擋性的一類）
-- [ ] T054 [US3] 端對端驗證 quickstart 情境 4：於 `gradle/libs.versions.toml` 將 awssdk 調成僅差 patch 的版本，確認建置**通過**且該變動列於資訊性區塊
+- [x] T052 [P] [US3] 撰寫失敗測試 `buildSrc/src/test/kotlin/com/knolux/build/depgate/DependabotScenarioTest.kt`：以 `GateVerdict` 層級驗證三種 Dependabot 型變更集——僅 patch 前進、僅 minor 前進（1.x 以上）、僅新增依賴——狀態皆為 `PASSED` 且 `blockedDeltas` 為空
+  - 5 則測試首次執行即全綠，**無紅燈階段**。此為預期：如本階段開頭所述，分類規則已由 Phase 2 的 `DeltaKind.blocking` 落實，US3 是**證明**它成立的驗證層而非新功能。
+  - 刻意走 `DependencySet` → `DeltaCalculator` → `GateVerdict` 的完整鏈路而非手捏 `DependencyDelta`：手捏等於自己先替分類器決定了 `kind`，真正會誤擋人的分類環節反而被繞過。
+  - 另含一則反向對照（major 跳動仍須擋下）。少了它，把 `blocking` 全改成 `false` 也能讓其餘四則通過，而那正是「閘門在但不作用」的失效方向。
+- [x] T053 [US3] 擴充 `ReportRendererTest.kt`：斷言上述三類出現在「ℹ️ 資訊性變動」區塊而非阻擋性區塊，特別驗證 `ADDED`（FR-011 明訂新增不阻擋，此為最易被誤歸為阻擋性的一類）
+- [x] T054 [US3] 端對端驗證 quickstart 情境 4：於 `gradle/libs.versions.toml` 將 awssdk 調成僅差 patch 的版本，確認建置**通過**且該變動列於資訊性區塊
+  - **發現並修正一項會使 US3 整個失效的缺陷**：閘門本體把「簽入的基準線檔已過期」一律當成失敗，於是 awssdk `2.49.3 → 2.49.4` 這種純 patch 變更集必定紅燈——基準線檔尚未重新產生。這違反 FR-011 與 SC-003，且 Dependabot 不會替我們跑 `updateDependencyBaseline`，等於每支 bot PR 都紅燈。research.md R2 否決 Gradle dependency locking 的理由正是這件事，形同原地把同一個坑再挖一次。
+  - 修正：新增純邏輯型別 `BaselineStaleness`，以落差的**類別**（而非落差的有無）決定成敗——含阻擋性項目才失敗，全屬 minor / patch / 新增時僅警告。判定不放在 Gradle task 內（憲章 III），並先寫 7 則失敗測試（`BaselineStalenessTest`）再實作。
+  - `checkDependencyBaseline` 維持逐字嚴格，不套用此寬容：發布不可回收，M2 的不變量不容許任何落差。
+  - 回填規格：新增 FR-011a（閘門的寬容規則）與 FR-024（發版一致性不變量），research.md R2 補上 M1' 與嚴格度差異的理由，quickstart 情境 4 / 5 補上兩者的對照指令。
+  - 驗證結果：patch 落差 → `checkDependencyCompatibility` 通過（31 項列於「ℹ️ 資訊性變動」）＋警告；同一落差 → `checkDependencyBaseline` 失敗；人為在基準線植入 major 落差 → 閘門如期失敗。
 
 **Checkpoint**: 四個 user story 全部獨立成立
 

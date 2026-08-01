@@ -1,6 +1,7 @@
 package com.knolux.build.depgate.task
 
 import com.knolux.build.depgate.BaselineLookup
+import com.knolux.build.depgate.BaselineStaleness
 import com.knolux.build.depgate.ConsoleRenderer
 import com.knolux.build.depgate.DeltaCalculator
 import com.knolux.build.depgate.DependencySet
@@ -53,9 +54,9 @@ abstract class CheckDependencyCompatibilityTask : DependencyGateTask() {
         val gitSource = GitBaselineSource(repoDir.get().asFile, comparisonBase.mergeBase, baselineDirPath())
         val approvals = approvalMatcher()
 
-        val staleProblems = mutableListOf<String>()
+        val staleness = mutableListOf<BaselineStaleness>()
         val verdicts = currentDependencySets().map { (moduleName, current) ->
-            staleProblems += detectStaleBaseline(fileSource, moduleName, current)
+            staleness += detectStaleBaseline(fileSource, current)
 
             when (val historic = gitSource.load(moduleName)) {
                 // FR-005：基準線在比較基準當時尚不存在（例如首次導入閘門的那支 PR）。
@@ -75,7 +76,7 @@ abstract class CheckDependencyCompatibilityTask : DependencyGateTask() {
         report.verdicts.filter { it.status == GateStatus.SKIPPED_NO_BASELINE }
             .forEach { logger.lifecycle("依賴相容性閘門：⏭️ 跳過 ${it.moduleName}——${it.skipReason}") }
 
-        reportFailures(report, staleProblems, reportPath)
+        reportFailures(report, staleness, reportPath)
 
         logger.lifecycle(
             "依賴相容性閘門：✅ 通過（比較基準 ${comparisonBase.ref}，" +
@@ -89,20 +90,16 @@ abstract class CheckDependencyCompatibilityTask : DependencyGateTask() {
      * 與閘門比對是兩件事：閘門比的是「merge-base 當時的檔案 vs 現在的實際解析」，
      * 而這裡確保「現在的檔案 vs 現在的實際解析」——後者若不成立，這支 PR 合併後
      * 就會把一份不真實的基準線留給下一個人當比較對象。
+     *
+     * 成敗的判定交給 [BaselineStaleness.blocking]，此處只負責取資料。
      */
-    private fun detectStaleBaseline(
-        source: FileBaselineSource,
-        moduleName: String,
-        current: DependencySet,
-    ): List<String> = when (val lookup = source.load(moduleName)) {
-        // 工作區缺基準線由 gitSource 那側判為跳過並記入報告，此處不重複報錯。
-        is BaselineLookup.Missing -> emptyList()
+    private fun detectStaleBaseline(source: FileBaselineSource, current: DependencySet): List<BaselineStaleness> =
+        when (val lookup = source.load(current.moduleName)) {
+            // 工作區缺基準線由 gitSource 那側判為跳過並記入報告，此處不重複報錯。
+            is BaselineLookup.Missing -> emptyList()
 
-        is BaselineLookup.Found -> DeltaCalculator.calculate(lookup.dependencySet, current)
-            .takeIf { it.isNotEmpty() }
-            ?.let { listOf(ConsoleRenderer.renderStaleBaseline(moduleName, it, baselineFile(moduleName).relativeToRepo())) }
-            .orEmpty()
-    }
+            is BaselineLookup.Found -> listOfNotNull(BaselineStaleness.detect(lookup.dependencySet, current))
+        }
 
     private fun writeReport(report: GateReport): String {
         val file = reportFile.get().asFile
@@ -116,17 +113,27 @@ abstract class CheckDependencyCompatibilityTask : DependencyGateTask() {
      *
      * 基準線過期與未核准的破壞性變更會**同時**回報：分兩次讓維護者各跑一輪 CI，
      * 等於把 FR-012 想避免的「修一項、重跑、又冒出一項」迴圈搬到任務之間再上演一次。
+     *
+     * 基準線過期只在落差含阻擋性項目時失敗。全屬 patch / minor / 新增時警告即可——
+     * 一律失敗會讓 Dependabot 的每支 PR 紅燈（違反 FR-011 與 SC-003），
+     * 而那正是 research.md R2 否決 Gradle dependency locking 的理由。
      */
-    private fun reportFailures(report: GateReport, staleProblems: List<String>, reportPath: String) {
-        if (staleProblems.isEmpty() && !report.blocked) return
+    private fun reportFailures(report: GateReport, staleness: List<BaselineStaleness>, reportPath: String) {
+        val (blockingStale, tolerated) = staleness.partition { it.blocking }
 
-        staleProblems.forEach { logger.error(it) }
+        tolerated.forEach { logger.warn(ConsoleRenderer.renderToleratedStaleBaseline(it, baselinePathOf(it))) }
+
+        if (blockingStale.isEmpty() && !report.blocked) return
+
+        blockingStale.forEach { logger.error(ConsoleRenderer.renderStaleBaseline(it, baselinePathOf(it))) }
         if (report.blocked) logger.error(ConsoleRenderer.renderBlockedSummary(report, reportPath))
 
         val reasons = listOfNotNull(
             "${report.blockedDeltas.size} 項未核准的破壞性變更".takeIf { report.blocked },
-            "${staleProblems.size} 個模組的基準線已過期".takeIf { staleProblems.isNotEmpty() },
+            "${blockingStale.size} 個模組的基準線已過期且落差具阻擋性".takeIf { blockingStale.isNotEmpty() },
         )
         throw GradleException("依賴相容性閘門失敗：${reasons.joinToString("、")}；詳見上方輸出與 $reportPath。")
     }
+
+    private fun baselinePathOf(staleness: BaselineStaleness) = baselineFile(staleness.moduleName).relativeToRepo()
 }
