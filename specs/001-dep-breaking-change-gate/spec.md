@@ -20,6 +20,10 @@
 >
 > 限制條件：本 repo 刻意維持輕量工具鏈（無 checkstyle / spotless），不應引入沉重外掛或大量設定；不採用 Gradle 內建 dependency locking；不採用 japicmp。
 
+**對上述失效案例的事後更正（2026-08-02，由 T051 的實測推翻）**：以本功能的工具重建 `knolux-redis-spring-boot-starter/v1.3.0` 的基準線後比對發現，redis 1.4.0 的外溢依賴**只有** Lettuce 6.8.2.RELEASE → 7.5.2.RELEASE 一項跨 major 變更；`io.netty` 的 4.1.x **從未出現在 v1.3.0 的 `runtimeClasspath` 上**（該版已全數解析為 `4.2.12.Final`），因此並不存在「4.1.x 線整個消失」的移除事件。誤判來源是 `./gradlew dependencies` 輸出中括號內的 *requested* 版本（`lettuce-core:6.8.2.RELEASE` 確實 requested `netty:4.1.125.Final`，但被 Spring Boot BOM 規則選為 `4.2.12.Final`）被當成了解析結果。
+
+此更正不改變本功能的動機，反而強化它：**人工比對依賴樹除了會漏看，也會看錯**，而兩種錯誤方向都只有在讀「解析後的實際結果」時才能避免。`CHANGELOG.md` 的對應揭露已同步更正。
+
 ## User Scenarios & Testing *(mandatory)*
 
 ### User Story 1 - 合併前攔截破壞性依賴變更 (Priority: P1)
@@ -33,7 +37,7 @@
 **Acceptance Scenarios**:
 
 1. **Given** `knolux-redis-spring-boot-starter` 最近發布版本的外溢依賴含 `io.lettuce:lettuce-core:6.8.2.RELEASE`，**When** 變更集使其解析為 `7.5.2.RELEASE`，**Then** 建置失敗，訊息指出模組為 `knolux-redis-spring-boot-starter`、依賴為 `io.lettuce:lettuce-core`、`6.8.2.RELEASE → 7.5.2.RELEASE`、類別為 major 版本跳動
-2. **Given** 基準線的外溢依賴含 `io.netty` 的 4.1.x 線，**When** 變更集使該座標完全不再出現於外溢依賴集合，**Then** 建置失敗，訊息指出該依賴被移除及其基準線版本
+2. **Given** 基準線的外溢依賴含某個座標（例如 `io.netty:netty-transport`），**When** 變更集使該座標完全不再出現於外溢依賴集合，**Then** 建置失敗，訊息指出該依賴被移除及其基準線版本
 3. **Given** 一個變更集同時觸發上述兩種情形，**When** 閘門執行，**Then** 兩項皆完整列出，不因先遇到其中一項就中止
 4. **Given** 一個變更集同時影響兩個模組，**When** 閘門執行，**Then** 兩個模組的判定結果皆呈現，並各自標明模組歸屬
 5. **Given** 變更集僅修改文件（README、CHANGELOG）而未動依賴，**When** 閘門執行，**Then** 建置通過且報告顯示無依賴變動
@@ -164,7 +168,7 @@ Dependabot 每週提出的依賴更新 PR，若解析後的外溢依賴僅有 mi
 
 ### Measurable Outcomes
 
-- **SC-001**: 重現 2026-08-01 的情境（自有原始碼零變更、Spring Boot 4.0.6 → 4.1.0）時，閘門在合併前即阻擋，且**同時**點出 Lettuce 的 major 跳動與 Netty 4.1.x 的移除兩項——即當時人工比對在發布後才發現、且第一次比對還漏掉其中一項的兩項變更，閘門一次全數列出。
+- **SC-001**: 重現 2026-08-01 的情境（自有原始碼零變更、Spring Boot 4.0.6 → 4.1.0）時，閘門在合併前即阻擋，並點出 Lettuce 6.8.2.RELEASE → 7.5.2.RELEASE 的 major 跳動——該項當時直到發布後才由人工比對發現。同時，閘門**不得**列出 Netty 4.1.x 的移除：當時的人工揭露誤將 `dependencies` 輸出中的 requested 版本當成解析結果，實際的外溢依賴集合中並無此項（見本文件開頭的事後更正）。
 - **SC-002**: 任何含未經核准之破壞性傳遞依賴變更的變更集，皆無法合併進正式分支。
 - **SC-003**: 僅含 minor 或 patch 依賴更新的變更集，因本閘門而失敗的比率為 0%。
 - **SC-004**: 撰寫發版揭露所需的依賴變更資訊 100% 可自報告取得，發版者不需自行比對依賴樹。
