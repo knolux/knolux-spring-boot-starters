@@ -68,8 +68,13 @@ git switch - && git branch -D tmp/verify-gate
 
 ## 情境 3：核准後放行（對應 User Story 4 / FR-014 ~ FR-016）
 
-延續情境 2 的失敗狀態，於 `gradle/dependency-approvals.toml` 加入對應的 `[[approval]]`
+於 `gradle/dependency-approvals.toml` 加入對應的 `[[approval]]`
 （格式見 [contracts/file-formats.md](./contracts/file-formats.md)），再執行一次。
+
+> **不建議直接沿用情境 2 的降版狀態**：Spring Boot BOM 降版會一次產生數十項阻擋差異
+> （實測 68 項），逐筆手寫核准不具可操作性。改在單一模組的 `build.gradle.kts` 以
+> `DependencyManagementExtension` 指定單一座標的舊版號，製造 2~3 項差異即可
+> （`resolutionStrategy.force` 會被 BOM 覆寫，無效）。
 
 **預期**：建置通過；報告的「已核准的破壞性變動」區塊列出該項與其 `reason` 原文。
 

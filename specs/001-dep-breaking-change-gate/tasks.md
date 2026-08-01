@@ -135,7 +135,7 @@ T014 ~ T018 為 port 與 adapter（憲章 III）。兩者的邊界不得模糊�
 - [x] T041 [US4] 建立 `gradle/dependency-approvals.toml`：僅含註解標頭（用途說明、`kind` 可用值、版本一動即失效的提醒），零筆核准。與 `gradle/libs.versions.toml` 同目錄同格式，維持既有慣例
 - [x] T042 [US4] 撰寫失敗測試：`UpdateDependencyBaselineTask` 於基準線推進後清除已失配的核准項，並在 console 列出被清除的項目（FR-017）
 - [x] T043 [US4] 實作核准清除邏輯於 `UpdateDependencyBaselineTask`
-- [ ] T044 [US4] 端對端驗證 quickstart 情境 3：延續 T032 的失敗狀態加入核准 → 通過；再把 `to` 改成不相符版本 → **必須重新失敗**。若改了版本仍放行，代表比對過鬆，須修正
+- [x] T044 [US4] 端對端驗證 quickstart 情境 3：延續 T032 的失敗狀態加入核准 → 通過；再把 `to` 改成不相符版本 → **必須重新失敗**。若改了版本仍放行，代表比對過鬆，須修正。**驗證方式修正**：未沿用 T032 的「Spring Boot BOM 降回 4.0.6」，該狀態會產生 68 項阻擋差異，逐筆手寫核准不具可操作性、也無法凸顯「改一個字元就失效」的比對嚴謹度。改以**針對性的 3 項差異**替代：`org.slf4j:slf4j-api` 2.0.18 → 1.7.36（`DOWNGRADE`，經 `DependencyManagementExtension` 指定；`resolutionStrategy.force` 會被 BOM 覆寫而無效）＋ `io.projectreactor:reactor-core`、`org.reactivestreams:reactive-streams` 兩項 `REMOVED`。另因 `origin/dev` 的 merge-base（`05b19f6`）早於基準線檔存在的時點，比較基準改用 `--base=HEAD`。**實測結果**：3 筆核准 → 通過且報告列出「已核准的破壞性變動」表格與 CHANGELOG 提醒；將 `to` 由 `1.7.36` 改為 `1.7.35` → 重新失敗（恰 1 項阻擋），報告同時列出該筆為「過期的核准」並給出 `to = "1.7.36"` 的正確範本；基準線推進後 3 筆核准全數清除，`gradle/dependency-approvals.toml` 的手寫註解標頭完整保留
 
 **Checkpoint**: 閘門具備完整的阻擋與放行途徑，可實際投入使用
 
