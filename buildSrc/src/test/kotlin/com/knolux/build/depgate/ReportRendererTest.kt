@@ -228,6 +228,22 @@ class ReportRendererTest {
         fun `跳過不影響通過判定`() {
             assertTrue(markdown.contains("✅ 通過"), "跳過不應被算成失敗")
         }
+
+        /**
+         * 「通過」可以，「無變動」不行：一個模組都沒比對過時，說得出口的只有
+         * 「這次沒擋下任何東西」，而不是「沒有東西需要擋」。
+         */
+        @Test
+        fun `全部模組都跳過時判定行不得宣稱無變動`() {
+            val allSkipped = ReportRenderer.renderGateReport(
+                GateReport(
+                    comparisonBase = "`origin/dev`",
+                    verdicts = listOf(GateVerdict.skipped(REDIS, reason), GateVerdict.skipped(S3, reason)),
+                ),
+            )
+
+            assertFalse(allSkipped.contains("外溢依賴無變動"), "什麼都沒比過，不得宣稱無變動：\n$allSkipped")
+        }
     }
 
     @Nested
@@ -279,7 +295,188 @@ class ReportRendererTest {
         }
     }
 
+    /**
+     * 發版報告 `change-report.md`（contracts/report-format.md §2）。
+     *
+     * 與閘門報告的差異全都源自同一件事：**這份報告不做判定，只做揭露**。
+     * 發版當下需要的是「下游要注意什麼」，不是「這支 PR 能不能合」——
+     * 留著「判定」與「如何處理」只會讓發版者以為還有什麼事沒做完。
+     */
+    @Nested
+    inner class 發版報告 {
+
+        private val markdown = ReportRenderer.renderChangeReport(releaseReport())
+
+        @Test
+        fun `標頭指明比較基準為上一個發布版本`() {
+            assertTrue(markdown.startsWith("# 依賴變更報告"), "實際首行為『${markdown.lineSequence().first()}』")
+            assertContains("**比較基準**：`$REDIS/v1.3.0`（上一個發布版本）")
+        }
+
+        @Test
+        fun `無判定行`() {
+            // 發版報告永不失敗（T049），出現「判定」會讓讀者去找一個不存在的成敗結論。
+            assertFalse(markdown.contains("**判定**"), "實際內容為：\n$markdown")
+            assertFalse(markdown.contains("❌ 阻擋"), "實際內容為：\n$markdown")
+        }
+
+        @Test
+        fun `無如何處理段落`() {
+            // 那段是給「被擋下來的人」看的；發版時該做的是把揭露寫進 CHANGELOG，不是去加核准。
+            assertFalse(markdown.contains("## 如何處理阻擋性變動"), "實際內容為：\n$markdown")
+            assertFalse(markdown.contains("[[approval]]"), "實際內容為：\n$markdown")
+        }
+
+        @Test
+        fun `破壞性變動的區塊標題即為升級前必讀`() {
+            assertContains("## ⚠️ 升級前必讀")
+            assertFalse(
+                markdown.contains("## ❌ 阻擋性變動（需核准或還原）"),
+                "發版報告沒有「阻擋」這回事，實際內容為：\n$markdown",
+            )
+        }
+
+        /**
+         * 本測試是這份報告最重要的一條：**核准解除的是建置阻擋，不是下游會不會壞**。
+         * 若已核准的破壞性變更在發版報告中消失，2026-08-01 的失效模式就會原封不動地重演——
+         * 只是這次「沒揭露」的原因從「沒人發現」變成「工具幫忙藏起來了」。
+         */
+        @Test
+        fun `已核准的破壞性變更仍列入升級前必讀`() {
+            assertContains("`io.lettuce:lettuce-core`")
+            assertContains("6.8.2.RELEASE")
+            assertContains("7.5.2.RELEASE")
+            assertFalse(
+                markdown.contains("## ✅ 已核准的破壞性變動"),
+                "發版報告不分核准與否，一律揭露，實際內容為：\n$markdown",
+            )
+        }
+
+        @Test
+        fun `依賴移除同樣列入升級前必讀`() {
+            assertContains("`io.netty:netty-transport`")
+            assertContains("**依賴移除**")
+        }
+
+        @Test
+        fun `資訊性變動仍完整保留`() {
+            // 發版報告的讀者要的是完整清單；patch 變動雖不阻擋，仍可能是下游排查問題的線索。
+            assertContains("## ℹ️ 資訊性變動")
+            assertContains("`ch.qos.logback:logback-classic`")
+        }
+
+        @Test
+        fun `無發布 tag 的模組必須揭露而非略過`() {
+            assertContains("## ⏭️ 已跳過的模組")
+            assertContains("`$S3`")
+        }
+
+        @Test
+        fun `版本字串原文呈現不做正規化`() {
+            assertContains("6.8.2.RELEASE")
+            assertFalse(markdown.contains("| 6.8.2 |"), "版本一旦被正規化，貼進 CHANGELOG 就與實際 POM 不符")
+        }
+
+        /** 情形 C 的發版版本：無變動時仍要產出報告，並明白寫出「無變動」。 */
+        @Test
+        fun `無任何變動時明說無變動而非產出空白報告`() {
+            val empty = ReportRenderer.renderChangeReport(
+                GateReport(
+                    comparisonBase = "`$REDIS/v1.3.0`（上一個發布版本）",
+                    verdicts = listOf(GateVerdict.evaluate(REDIS, emptyList())),
+                ),
+            )
+
+            assertTrue(empty.contains("外溢依賴無變動"), "實際內容為：\n$empty")
+        }
+
+        /**
+         * 「全部模組都跳過」與「全部模組都沒變動」在資料上長得一樣（deltas 皆為空），
+         * 但意義完全相反：前者是**什麼都沒比過**，後者是**比過了且相同**。
+         *
+         * 實際踩到過：以 `--since=knolux-redis-spring-boot-starter/v1.3.0` 產報告時，
+         * 該 tag 早於基準線檔存在的時點，兩個模組都因取不到基準線而跳過，
+         * 報告標頭卻寫著「✅ 外溢依賴無變動」。那正是本功能要根除的失效模式——
+         * 一份看起來乾淨的報告，實際上什麼都沒檢查。
+         */
+        @Test
+        fun `全部模組都跳過時不得宣稱無變動`() {
+            val allSkipped = ReportRenderer.renderChangeReport(
+                GateReport(
+                    comparisonBase = "`$REDIS/v1.3.0`（上一個發布版本）",
+                    verdicts = listOf(
+                        GateVerdict.skipped(REDIS, "取不到基準線"),
+                        GateVerdict.skipped(S3, "取不到基準線"),
+                    ),
+                ),
+            )
+
+            assertFalse(allSkipped.contains("外溢依賴無變動"), "什麼都沒比過，不得宣稱無變動：\n$allSkipped")
+            assertTrue(allSkipped.contains("## ⏭️ 已跳過的模組"), "實際內容為：\n$allSkipped")
+        }
+
+        /** 一個模組跳過、另一個確實無變動時，「無變動」只能講那個真的比過的模組。 */
+        @Test
+        fun `部分模組跳過時無變動的結論不得涵蓋未比對的模組`() {
+            val partial = ReportRenderer.renderChangeReport(
+                GateReport(
+                    comparisonBase = "`$REDIS/v1.3.0`（上一個發布版本）",
+                    verdicts = listOf(
+                        GateVerdict.evaluate(REDIS, emptyList()),
+                        GateVerdict.skipped(S3, "取不到基準線"),
+                    ),
+                ),
+            )
+
+            assertFalse(
+                partial.contains("**結果**：✅ 外溢依賴無變動"),
+                "有模組未比對時，不得下全域無變動的結論：\n$partial",
+            )
+            assertTrue(partial.contains("## ⏭️ 已跳過的模組"), "實際內容為：\n$partial")
+        }
+
+        private fun assertContains(expected: String) =
+            assertTrue(markdown.contains(expected), "應含『$expected』，實際內容為：\n$markdown")
+    }
+
     // ---------- fixtures ----------
+
+    /**
+     * 發版情境：一筆已核准的 major 跳動、一筆依賴移除、一筆 patch 前進，
+     * 外加一個尚無發布 tag 的模組。
+     */
+    private fun releaseReport(): GateReport {
+        val approval = Approval(
+            module = REDIS,
+            coordinate = DependencyCoordinate.parse("io.lettuce:lettuce-core"),
+            from = "6.8.2.RELEASE",
+            to = "7.5.2.RELEASE",
+            kind = DeltaKind.MAJOR,
+            reason = REASON,
+        )
+        val matcher = ApprovalMatcher(listOf(approval))
+        val redis = GateVerdict.evaluate(
+            REDIS,
+            listOf(
+                delta(REDIS, "io.lettuce:lettuce-core", "6.8.2.RELEASE", "7.5.2.RELEASE", DeltaKind.MAJOR),
+                DependencyDelta(
+                    REDIS,
+                    DependencyCoordinate.parse("io.netty:netty-transport"),
+                    "4.1.125.Final",
+                    null,
+                    DeltaKind.REMOVED,
+                ),
+                delta(REDIS, "ch.qos.logback:logback-classic", "1.5.32", "1.5.34", DeltaKind.PATCH),
+            ),
+            matcher,
+        )
+
+        return GateReport.of(
+            "`$REDIS/v1.3.0`（上一個發布版本）",
+            listOf(redis, GateVerdict.skipped(S3, "找不到 $S3 的發布 tag，視為首次發布")),
+            matcher,
+        )
+    }
 
     private fun blockedReport(): GateReport {
         val redis = GateVerdict.evaluate(

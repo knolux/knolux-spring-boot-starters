@@ -56,6 +56,20 @@ class GitRefs(repoDir: File) {
 
     /** ref 是否可解析。用 `rev-parse --verify` 而非 `show-ref`，因為前者同時吃分支、tag 與 SHA。 */
     fun exists(ref: String): Boolean = git.run("rev-parse", "--verify", "--quiet", "$ref^{commit}").successful
+
+    /**
+     * 列出全部 tag，供 [ReleaseTagSelector] 挑選發版比較基準（FR-004）。
+     *
+     * **不在此處排序或過濾**：`git tag` 的排序是字典序，而發版基準必須依語意化版本挑選
+     * （`v1.10.0` 要勝過 `v1.9.0`）。把挑選規則留在可單元測試的純邏輯側，
+     * 這裡只負責把清單原樣拿出來。
+     *
+     * 空白行一律濾掉：沒有任何 tag 時 `git tag` 輸出空字串，未過濾的 split 會產生一個
+     * 空字串項，下游會把它當成一個「名稱為空的 tag」，於是報告說「有 tag 但解析不了」，
+     * 與事實（從未發布過）相反。
+     */
+    fun listTags(): List<String> =
+        git.run("tag", "--list").stdout.lines().map { it.trim() }.filter { it.isNotEmpty() }
 }
 
 /**

@@ -1,5 +1,6 @@
 import com.knolux.build.depgate.task.CheckDependencyBaselineTask
 import com.knolux.build.depgate.task.CheckDependencyCompatibilityTask
+import com.knolux.build.depgate.task.DependencyChangeReportTask
 import com.knolux.build.depgate.task.DependencyGateTask
 import com.knolux.build.depgate.task.UpdateDependencyBaselineTask
 import io.spring.gradle.dependencymanagement.dsl.DependencyManagementExtension
@@ -121,4 +122,9 @@ tasks.register<CheckDependencyBaselineTask>("checkDependencyBaseline") {
 
 tasks.register<UpdateDependencyBaselineTask>("updateDependencyBaseline") {
     configureGateDefaults()
+}
+
+tasks.register<DependencyChangeReportTask>("dependencyChangeReport") {
+    configureGateDefaults()
+    reportFile.set(layout.buildDirectory.file("reports/dependency-gate/change-report.md"))
 }

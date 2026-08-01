@@ -19,6 +19,8 @@ object ReportRenderer {
     private const val SECTION_SEPARATOR = "\n\n---\n\n"
     private const val EMPTY_CELL = "—"
     private const val REMOVED_CELL = "（已移除）"
+    private const val NO_CHANGE = "外溢依賴無變動"
+    private const val NOTHING_COMPARED = "未比對任何模組（見下方「已跳過的模組」）"
 
     /** 渲染閘門報告 `gate-report.md`。 */
     fun renderGateReport(report: GateReport): String {
@@ -41,6 +43,76 @@ object ReportRenderer {
         return sections.joinToString(SECTION_SEPARATOR, postfix = "\n")
     }
 
+    /**
+     * 渲染發版報告 `change-report.md`（contracts/report-format.md §2）。
+     *
+     * 與 [renderGateReport] 共用全部的區塊渲染，差異只有三處，且都源自同一件事：
+     * **這份報告不做判定，只做揭露**。
+     *
+     * 1. 無「判定」行——發版報告永不失敗，寫上去會讓讀者去找一個不存在的成敗結論
+     * 2. 無「如何處理」段落——那是給被擋下來的人看的；發版時該做的是把揭露寫進 CHANGELOG
+     * 3. 破壞性變動**不分核准與否一律列入「⚠️ 升級前必讀」**
+     *
+     * 第 3 點是本函式存在的核心理由：**核准解除的是建置阻擋，不是下游會不會壞**。
+     * 若已核准的破壞性變更在發版報告中消失，2026-08-01 的失效模式會原封不動地重演，
+     * 只是「沒揭露」的原因從「沒人發現」變成「工具幫忙藏起來了」——後者更難察覺。
+     */
+    fun renderChangeReport(report: GateReport): String {
+        val breakingByModule = report.verdicts.associateWith { verdict ->
+            verdict.deltas.filter { it.blocking && it.kind != DeltaKind.UNPARSEABLE }
+        }
+        val unparseable = report.verdicts.flatMap { verdict ->
+            verdict.deltas.filter { it.kind == DeltaKind.UNPARSEABLE }
+        }
+
+        val sections = buildList {
+            add(renderChangeHeader(report))
+            renderBreakingSection(breakingByModule)?.let(::add)
+            renderUnparseableSection(unparseable)?.let(::add)
+            renderInformationalSection(report.verdicts)?.let(::add)
+            renderSkippedSection(report.verdicts)?.let(::add)
+        }
+
+        return sections.joinToString(SECTION_SEPARATOR, postfix = "\n")
+    }
+
+    private fun renderChangeHeader(report: GateReport): String = buildString {
+        appendLine("# 依賴變更報告")
+        appendLine()
+        append("**比較基準**：${report.comparisonBase}")
+
+        // 完全無變動時仍要明說。少了這句，讀者無從分辨「這次真的沒動」與「報告產壞了」。
+        if (report.verdicts.all { it.deltas.isEmpty() }) {
+            // 一個模組都沒比對成功時不掛 ✅：那面綠勾會被當成「檢查過了，沒事」。
+            val icon = if (report.verdicts.any { it.status != GateStatus.SKIPPED_NO_BASELINE }) "✅" else "⚠️"
+            appendLine()
+            append("**結果**：$icon ${noChangeSummary(report.verdicts)}")
+        }
+    }
+
+    /**
+     * 「無變動」的結論句——只涵蓋**真的比對過**的模組。
+     *
+     * 被跳過的模組其 deltas 同樣為空，資料上與「比過了且相同」長得一模一樣，
+     * 意義卻正好相反：一個是什麼都沒檢查，一個是檢查完沒事。實際踩過這個坑——
+     * 以早於基準線檔存在時點的 tag 產報告，兩個模組都因取不到基準線而跳過，
+     * 標頭卻寫著「外溢依賴無變動」。一份看起來乾淨、實際上什麼都沒檢查的報告，
+     * 正是本功能要根除的失效模式。
+     *
+     * 前置條件：呼叫端已確認比對過的模組皆無差異。
+     */
+    private fun noChangeSummary(verdicts: List<GateVerdict>): String {
+        val compared = verdicts.filter { it.status != GateStatus.SKIPPED_NO_BASELINE }
+
+        return when {
+            compared.isEmpty() -> NOTHING_COMPARED
+            compared.size == verdicts.size -> NO_CHANGE
+            // 部分跳過時 MUST 點名範圍：讀者才知道這句話管的是哪幾個模組。
+            else -> compared.joinToString("、") { "`${it.moduleName}`" } +
+                " $NO_CHANGE；其餘模組未比對（見下方「已跳過的模組」）"
+        }
+    }
+
     private fun renderHeader(report: GateReport): String = buildString {
         appendLine("# 依賴相容性閘門報告")
         appendLine()
@@ -60,7 +132,11 @@ object ReportRenderer {
             "$informationalCount 項資訊性變動".takeIf { informationalCount > 0 },
         )
 
-        return if (clauses.isEmpty()) "✅ 通過 — 外溢依賴無變動" else "✅ 通過 — ${clauses.joinToString("、")}"
+        // clauses 為空即代表沒有任何差異（阻擋、已核准、資訊性三類皆為零），
+        // 此時「無變動」的範圍交由 noChangeSummary 界定——全部模組都跳過時不能這樣講。
+        val summary = if (clauses.isEmpty()) noChangeSummary(report.verdicts) else clauses.joinToString("、")
+
+        return "✅ 通過 — $summary"
     }
 
     /**
@@ -117,20 +193,45 @@ object ReportRenderer {
         }
     }
 
+    /** 閘門報告的阻擋性變動區塊。模組小標即為可貼進 CHANGELOG 的「⚠️ 升級前必讀」。 */
+    private fun renderBlockingSection(blockedByModule: Map<GateVerdict, List<DependencyDelta>>): String? =
+        renderBreakingTables(
+            heading = "## ❌ 阻擋性變動（需核准或還原）",
+            moduleHeading = { "### ⚠️ 升級前必讀：`$it` 的傳遞依賴破壞性變更" },
+            byModule = blockedByModule,
+        )
+
     /**
-     * 阻擋性變動。小標即為可貼進 CHANGELOG 的「⚠️ 升級前必讀」，因此**逐模組**分表——
-     * CHANGELOG 的揭露對象是單一 artifact 的使用者，混在一起貼過去反而要再拆。
+     * 發版報告的破壞性變動區塊。小標即為 CHANGELOG 的段落名，可整段複製。
+     *
+     * 與 [renderBlockingSection] 共用表格渲染，僅換掉兩層標題：表格本身是與 CHANGELOG
+     * 的契約（見本類別的 KDoc），兩份報告若各寫一份，遲早會有一邊先漂移。
      */
-    private fun renderBlockingSection(blockedByModule: Map<GateVerdict, List<DependencyDelta>>): String? {
-        val modules = blockedByModule.filterValues { it.isNotEmpty() }
+    private fun renderBreakingSection(breakingByModule: Map<GateVerdict, List<DependencyDelta>>): String? =
+        renderBreakingTables(
+            heading = "## ⚠️ 升級前必讀",
+            moduleHeading = { "### `$it` 的傳遞依賴破壞性變更" },
+            byModule = breakingByModule,
+        )
+
+    /**
+     * 逐模組分表——CHANGELOG 的揭露對象是單一 artifact 的使用者，
+     * 混在一起貼過去反而要再拆。
+     */
+    private fun renderBreakingTables(
+        heading: String,
+        moduleHeading: (String) -> String,
+        byModule: Map<GateVerdict, List<DependencyDelta>>,
+    ): String? {
+        val modules = byModule.filterValues { it.isNotEmpty() }
         if (modules.isEmpty()) return null
 
         return buildString {
-            append("## ❌ 阻擋性變動（需核准或還原）")
+            append(heading)
             modules.forEach { (verdict, deltas) ->
                 appendLine()
                 appendLine()
-                appendLine("### ⚠️ 升級前必讀：`${verdict.moduleName}` 的傳遞依賴破壞性變更")
+                appendLine(moduleHeading(verdict.moduleName))
                 appendLine()
                 appendLine("| 依賴 | 基準線 | 當前 | 影響 |")
                 appendLine("|---|---|---|---|")

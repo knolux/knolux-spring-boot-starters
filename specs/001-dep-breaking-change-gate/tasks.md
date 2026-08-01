@@ -147,13 +147,17 @@ T014 ~ T018 為 port 與 adapter（憲章 III）。兩者的邊界不得模糊�
 
 **Independent Test**: 於含已知依賴變動的分支執行 `dependencyChangeReport --since=<tag>`，檢查報告含模組名、座標、前後版本、分類，且不需重新排版即可貼入 Markdown（quickstart 情境 9）。
 
-- [ ] T045 [P] [US2] 撰寫失敗測試 `buildSrc/src/test/kotlin/com/knolux/build/depgate/ReleaseTagSelectorTest.kt`：自 tag 清單挑選某模組最新的 `<module>/v*`，**依語意化版本排序**——`v1.10.0` MUST 勝過 `v1.9.0`（字典序會給出相反答案，此為 spec 明列的 edge case）；其他模組的 tag MUST 被排除；無任何 tag → 回傳「無基準線」
-- [ ] T046 [US2] 實作 `buildSrc/src/main/kotlin/com/knolux/build/depgate/ReleaseTagSelector.kt`。此型別未列於 data-model.md，是實作 FR-004 所需的新增純邏輯元件；歸屬與 `DeltaCalculator` 同層（無 I/O，tag 清單由呼叫端傳入）
-- [ ] T047 [US2] 擴充 `ReportRendererTest.kt`：change-report 變體——標頭為 `**比較基準**：<tag>（上一個發布版本）`、**無**「判定」行、**無**「如何處理」段落、阻擋性區塊標題改為「⚠️ 升級前必讀」
-- [ ] T048 [US2] 實作 `ReportRenderer` 的 change-report 渲染變體
-- [ ] T049 [US2] 實作 `buildSrc/src/main/kotlin/com/knolux/build/depgate/task/DependencyChangeReportTask.kt`：`--since=<git-ref>` 選項（預設由 `ReleaseTagSelector` 決定），輸出至 `build/reports/dependency-gate/change-report.md`。**永不失敗**——發版當下需要的是完整資訊，不是阻擋
-- [ ] T050 [US2] 於根 `build.gradle.kts` 的 `subprojects {}` 註冊 `dependencyChangeReport` 並加入根層級聚合任務
-- [ ] T051 [US2] 端對端驗證 quickstart 情境 9：執行 `./gradlew dependencyChangeReport --since=knolux-redis-spring-boot-starter/v1.3.0`，確認「⚠️ 升級前必讀」段落可**原文**貼入 CHANGELOG，且內容與 `CHANGELOG.md:20-34` 現有的人工撰寫版本實質相符
+- [x] T045 [P] [US2] 撰寫失敗測試 `buildSrc/src/test/kotlin/com/knolux/build/depgate/ReleaseTagSelectorTest.kt`：自 tag 清單挑選某模組最新的 `<module>/v*`，**依語意化版本排序**——`v1.10.0` MUST 勝過 `v1.9.0`（字典序會給出相反答案，此為 spec 明列的 edge case）；其他模組的 tag MUST 被排除；無任何 tag → 回傳「無基準線」
+- [x] T046 [US2] 實作 `buildSrc/src/main/kotlin/com/knolux/build/depgate/ReleaseTagSelector.kt`。此型別未列於 data-model.md，是實作 FR-004 所需的新增純邏輯元件；歸屬與 `DeltaCalculator` 同層（無 I/O，tag 清單由呼叫端傳入）
+- [x] T047 [US2] 擴充 `ReportRendererTest.kt`：change-report 變體——標頭為 `**比較基準**：<tag>（上一個發布版本）`、**無**「判定」行、**無**「如何處理」段落、阻擋性區塊標題改為「⚠️ 升級前必讀」
+- [x] T048 [US2] 實作 `ReportRenderer` 的 change-report 渲染變體
+- [x] T049 [US2] 實作 `buildSrc/src/main/kotlin/com/knolux/build/depgate/task/DependencyChangeReportTask.kt`：`--since=<git-ref>` 選項（預設由 `ReleaseTagSelector` 決定），輸出至 `build/reports/dependency-gate/change-report.md`。**永不失敗**——發版當下需要的是完整資訊，不是阻擋
+- [x] T050 [US2] 於根 `build.gradle.kts` 註冊 `dependencyChangeReport`
+      **註冊位置修正**：任務原文為「於 `subprojects {}` 註冊並加入根層級聚合任務」，實際**僅註冊於根專案**（單一任務處理全部模組），與 T028 已記錄的修正同源——同名任務註冊到每個子專案會讓 `./gradlew dependencyChangeReport` 同時觸發根與各子專案，且模組層 `build.gradle.kts` 依憲章「技術與相容性約束」只宣告 `description` 與 `dependencies`。既為單一任務，即不存在需要聚合的對象。
+- [x] T051 [US2] 端對端驗證 quickstart 情境 9：執行 `./gradlew dependencyChangeReport --since=knolux-redis-spring-boot-starter/v1.3.0`，確認「⚠️ 升級前必讀」段落可**原文**貼入 CHANGELOG，且內容與 `CHANGELOG.md:20-34` 現有的人工撰寫版本實質相符
+      **驗證方式修正**：`knolux-redis-spring-boot-starter/v1.3.0` 早於基準線檔存在的時點，直接下 `--since=<該 tag>` 只會得到兩個模組皆「已跳過」的報告。改以 `git worktree` 在該 tag 上重建基準線（複製當前 `buildSrc/` 並附加 `updateDependencyBaseline` 註冊；模組的依賴宣告全部沿用該 tag 原狀），commit 到臨時 ref 後以 `--since=<臨時 ref>` 取得真實比對，驗證後移除 worktree 與該 ref。
+      **本輪發現並修正的缺陷**：報告標頭把「全部模組都被跳過」渲染成「✅ 外溢依賴無變動」——兩者的 `deltas` 同為空，意義卻相反（什麼都沒比 vs. 比過且相同）。此即本功能要根除的失效模式，已於 `ReportRenderer.noChangeSummary()` 修正並補上三筆迴歸測試（含閘門報告的同型缺陷）。
+      **與 `CHANGELOG.md:20-34` 的實質差異（需人工修正 CHANGELOG 與 spec SC-001）**：lettuce 6.8.2.RELEASE → 7.5.2.RELEASE 完全相符；但 CHANGELOG 宣稱的「`io.netty:*` 4.1.125 與 4.2.12 並存 → 統一為 4.2.x（4.1.x 已移除）」**與實測不符**——v1.3.0 的 `runtimeClasspath` 中 netty 全數為 `4.2.12.Final`，無任何 4.1.x，故本次無 `REMOVED` 差異。`dependencyInsight` 顯示 lettuce 6.8.2 *requested* netty 4.1.125.Final 但被 Spring Boot BOM 規則選為 4.2.12.Final；人工判讀 `./gradlew dependencies` 時把括號中的 requested 版本當成了解析結果。**這正好是本功能的價值示範**：人工比對依賴樹會誤判，工具讀的是解析後的實際結果。
 
 **Checkpoint**: 發版揭露不再需要人工比對依賴樹
 

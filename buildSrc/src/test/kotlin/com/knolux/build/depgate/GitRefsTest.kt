@@ -112,6 +112,27 @@ class GitRefsTest {
         assertTrue(error!!.message!!.contains("merge-base"), "實際為『${error.message}』")
     }
 
+    // ---------- tag 清單（FR-004：發版報告的比較基準） ----------
+
+    @Test
+    fun `列出所有 tag`() {
+        git("tag", "knolux-redis-spring-boot-starter/v1.3.0")
+        git("tag", "knolux-s3-spring-boot-starter/v1.2.0")
+
+        val tags = refs.listTags()
+
+        assertTrue(tags.contains("knolux-redis-spring-boot-starter/v1.3.0"), "實際為 $tags")
+        assertTrue(tags.contains("knolux-s3-spring-boot-starter/v1.2.0"), "實際為 $tags")
+    }
+
+    @Test
+    fun `沒有任何 tag 時回傳空清單而非空字串項`() {
+        // `git tag` 無輸出時，未過濾的 split 會產生一個空字串項，
+        // 那會被 ReleaseTagSelector 當成一個「名稱為空」的 tag 而進入 ignoredTags，
+        // 於是報告會說「有 tag 但解析不了」——與事實（從未發布過）相反。
+        assertEquals(emptyList<String>(), refs.listTags())
+    }
+
     // ---------- helpers ----------
 
     private fun revParse(ref: String): String = run("rev-parse", ref).trim()
