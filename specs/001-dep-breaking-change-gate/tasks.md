@@ -218,20 +218,42 @@ T014 ~ T018 為 port 與 adapter（憲章 III）。兩者的邊界不得模糊�
 
 ### 剩餘的 quickstart 驗收情境
 
-- [ ] T060 執行 quickstart 情境 1（SC-001，最關鍵）：`./gradlew -p buildSrc test --tests '*Regression2026080*'` 綠燈，且斷言確實同時涵蓋 Lettuce `MAJOR` 與 Netty `REMOVED` 兩項
-- [ ] T061 執行 quickstart 情境 5：任意調整一個依賴版本但不執行 `updateDependencyBaseline`，確認 `./gradlew checkDependencyBaseline` 失敗且訊息明確指示修正指令並列出不一致的行
-- [ ] T062 執行 quickstart 情境 6：`./gradlew -p buildSrc test --tests '*ArtifactVersion*'` 綠燈，確認無法解析時回傳 `Unparseable` 且 `reason` 帶原始字串，未回傳 null 亦未拋出被上層吞掉的例外
-- [ ] T063 執行 quickstart 情境 7：於 `settings.gradle.kts` 暫時 `include` 一個最小模組，確認該模組出現在報告的「已跳過的模組」區塊、理由為無基準線、建置**不失敗**，且過程中**未修改**閘門本身任何設定（SC-006 / FR-002）。驗證後還原 `settings.gradle.kts`
-- [ ] T064 執行 quickstart 情境 8：本地 `./gradlew checkDependencyCompatibility --base=origin/dev` 的判定與報告內容，與同一 commit 在 CI 上的結果完全一致（SC-007 / FR-023）
-- [ ] T065 執行 quickstart 情境 10：量測閘門使單次 CI 檢查增加的 wall-clock 時間，確認不超過 3 分鐘（SC-005，含 buildSrc 編譯與測試）。若超出，優先檢查是否誤觸發了完整建置
-- [ ] T066 確認既有建置行為完全不變：`./gradlew build` 與 `./gradlew test --continue` 的結果與加入本功能前一致（閘門刻意不掛在 `check` 之下的驗證）
+- [x] T060 執行 quickstart 情境 1（SC-001，最關鍵）：`./gradlew -p buildSrc test --tests '*Regression2026080*'` 綠燈（5 個測試 PASSED）
+  - 斷言涵蓋 Lettuce 6.8.2.RELEASE → 7.5.2.RELEASE 為 `MAJOR`，且該項判定為阻擋性
+  - **Netty 的部分與原先假設不同**：以 `v1.3.0` worktree 實測，兩側 runtimeClasspath **都沒有** `io.netty` 4.1.x，因此不存在依賴移除。原始事件回顧誤把「Netty 版本線隨 Lettuce 一併換代」記成「4.1.x 整條消失」。測試以 `redis 兩側都不存在 Netty 4-1-x 因此沒有依賴移除` 明確記錄此事實，避免日後有人再據錯誤前提修改斷言（spec SC-001 與 `CHANGELOG.md` 已於 T051 一併更正）
+  - 情境 1 的價值因此落在「一次列出全部阻擋項」而非「補抓漏看的第二項」——人工比對第一遍漏看的是**版本線換代**，不是移除
+- [x] T061 執行 quickstart 情境 5：將基準線檔的 `software.amazon.awssdk:s3` 改成 `2.49.2`（等價於「調了依賴卻沒重新產生基準線」），對照兩個任務的行為
+  - `./gradlew checkDependencyCompatibility --base=HEAD` → **通過**，僅輸出「以上皆非阻擋性變動，依 FR-011 不讓建置失敗；但發版前的 checkDependencyBaseline 會逐字比對」
+  - `./gradlew checkDependencyBaseline` → **失敗**，列出 `- …:2.49.2` / `+ …:2.49.3` 與「請執行 ./gradlew updateDependencyBaseline 重新產生後一併提交」
+  - 同一份落差、兩種判定，正是 FR-011a 與 FR-024 的分界；驗證後以 `git checkout gradle/dependency-baseline/` 還原並確認重跑通過
+- [x] T062 執行 quickstart 情境 6：`./gradlew -p buildSrc test --tests '*ArtifactVersion*'` 綠燈（20 個測試 PASSED），涵蓋 `Unparseable` 帶原始字串，以及 `7.5.2.RELEASE` / `4.2.15.Final` / `2.49.3` / `2.6` / `1.5.34` 的解析
+- [x] T063 執行 quickstart 情境 7：暫時 `include(":knolux-probe-spring-boot-starter")` 並建立最小模組，**未動閘門任何設定**
+  - `checkDependencyCompatibility --base=HEAD` → 建置**成功**，報告「## ⏭️ 已跳過的模組」列出該模組與理由（無法自 git ref 取得基準線檔），標題判定為「✅ 通過 — `knolux-redis…`、`knolux-s3…` 外溢依賴無變動；其餘模組未比對」
+  - 額外確認 SC-006 的另一半：`./gradlew updateDependencyBaseline` 自動替新模組產出 `gradle/dependency-baseline/knolux-probe-spring-boot-starter.txt`，同樣未改閘門設定
+  - 驗證後刪除臨時模組與其基準線檔，並 `git checkout settings.gradle.kts`
+- [x] T064 執行 quickstart 情境 8：以 `git worktree` 建立同一 commit 的乾淨副本模擬 CI checkout，兩側執行 `checkDependencyCompatibility --base=origin/dev`
+  - console 判定一致，`gate-report.md` 經 `diff` 確認**逐字相同**——判定不受工作區狀態影響，這正是 FR-023 的實質內容
+  - **限制須誠實記錄**：本分支尚未在 GitHub Actions 上跑過，真正的本地 vs CI 對照要等 PR 建立後才成立。乾淨 worktree 能證明的是「與工作區污染無關」，不能證明「與 runner 環境無關」
+- [x] T065 執行 quickstart 情境 10：以 `--rerun-tasks` 強制重跑量測兩個新增的 CI 步驟
+  - `./gradlew -p buildSrc test --rerun-tasks` → 30.2s；`./gradlew checkDependencyCompatibility --base=origin/dev --rerun-tasks` → 6.4s；合計約 **37 秒**，遠低於 SC-005 的 3 分鐘
+  - 量測於本機且 Gradle daemon 已暖；CI 以 `-Dorg.gradle.daemon=false` 執行，冷啟動會更慢，但餘裕（37s vs 180s）足以吸收
+- [x] T066 確認既有建置行為完全不變：`./gradlew build --dry-run` 的任務圖中閘門任務數為 **0**——`checkDependencyCompatibility` / `checkDependencyBaseline` / `updateDependencyBaseline` / `dependencyChangeReport` 皆未掛在 `check` 之下，只由 CI 步驟與人工顯式呼叫觸發；`./gradlew build` 仍 BUILD SUCCESSFUL
 
 ### 文件與治理同步
 
-- [ ] T067 [P] 更新 `CLAUDE.md`：於「建置與測試」加入四個新任務的指令與 `./gradlew -p buildSrc test`；於「專案結構與版本機制」說明基準線檔與核准檔的用途與更新時機
-- [ ] T068 [P] 更新 `README.md`：於發布流程說明發版前需執行 `updateDependencyBaseline`，以及如何取用 `dependencyChangeReport` 撰寫升級揭露
-- [ ] T069 以 `/speckit-constitution` 為 `.specify/memory/constitution.md` 的「開發流程與品質閘門 → Commit 與發布」新增一條發版步驟（發版前執行 `updateDependencyBaseline` 並確認基準線已簽入）。憲章修訂 MUST 隨附 Sync Impact Report 且 MUST 走 PR 流程，MUST NOT 直接推送 `main`
-- [ ] T070 執行 `npx gitnexus analyze` 更新索引，再以 `gitnexus_detect_changes()` 確認本功能的影響範圍符合預期（未觸及兩個 starter 的任何發布程式碼）
+- [x] T067 [P] 更新 `CLAUDE.md`：新增「依賴相容性閘門」小節（五個指令＋不掛在 `check` 之下、閘門自身受 TDD 約束、寬嚴兩級的理由），並於「專案結構與版本機制」加入打 tag 前必跑 `updateDependencyBaseline`，以及基準線檔／核准檔的用途與更新時機對照表
+  - **注意**：`CLAUDE.md` 被 `.gitignore:47` 排除，因此這份更新**不會進入 commit**，只存在於本機工作區。是否納入版控需另行決定（見下方「待決事項」）
+- [x] T068 [P] 更新 `README.md`：於「開發」新增依賴相容性閘門小節；「發布流程」改為三步驟（`updateDependencyBaseline` → `dependencyChangeReport` → 打 tag），並在 CI 工作流程說明中補上兩個新的 CI／publish 步驟
+- [x] T069 修訂 `.specify/memory/constitution.md` 至 **v1.1.0**（MINOR：擴充既有章節，未移除或重新定義任何原則）
+  - 「Commit 與發布」發布流程新增第 4 步「執行 `updateDependencyBaseline` 並簽入」，原 4、5 順延為 5、6，並註明此步建立的不變量與「落差只能刪 tag 重打」的代價
+  - 「品質閘門」新增〈依賴相容性閘門〉條文：合併前 MUST 通過、核准 MUST 逐字比對且 MUST NOT 為全域開關、合併前寬容／發版前嚴格的分界與理由、閘門自身受原則 I 約束、MUST NOT 掛在 `check` 之下
+  - Sync Impact Report 已更新為本次修訂；`Last Amended` 改為 2026-08-02。修訂隨本功能一併走 PR，未直接推送 `main`
+- [x] T070 執行 `npx gitnexus analyze`（918 nodes / 1,946 edges，增量更新 6 個檔案），再以 `gitnexus_detect_changes()` 確認：risk level **low**、affected processes **0**，變更僅落在 markdown 文件，**未觸及兩個 starter 的任何發布程式碼**
+
+### 待決事項（不阻擋本功能交付）
+
+- `CLAUDE.md` 目前列於 `.gitignore`，T067 的更新無法隨 PR 進入 repo。憲章明文要求該檔與憲章保持一致，但被忽略的檔案無法由 review 把關——是否移出 `.gitignore` 需由維護者決定
+- `publish.yml` 是否加入「以發布出去的 artifact 實際做一次消費端 smoke test」，先前討論後暫緩，未納入本功能範圍
 
 **Checkpoint**: 功能完整交付，可開 PR 進 `dev`
 

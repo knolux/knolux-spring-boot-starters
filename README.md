@@ -200,6 +200,22 @@ byte[] content = s3Template.download(spec, AsyncResponseTransformer.toBytes())
 
 整合測試（`*IntegrationTest`）需要 Docker 執行 Testcontainers；未啟動 Docker 時會透過 `Assumptions.assumeTrue(...)` 自動跳過。
 
+### 依賴相容性閘門
+
+兩個模組都以 `api` scope 曝露核心依賴，因此**傳遞依賴的 major 跳動等同於對使用者的破壞性變更**，即使本專案自有原始碼一行未改。CI 會在合併前攔下這類變動：
+
+```bash
+# 比對外溢依賴，偵測 major 跳動與依賴移除（CI 執行）
+./gradlew checkDependencyCompatibility
+
+# 重新產生基準線檔案，**發版前必跑**
+./gradlew updateDependencyBaseline
+```
+
+minor / patch 變動不阻擋建置，只列入報告——Dependabot 的每週 PR 不會因此紅燈。報告位於 `build/reports/dependency-gate/gate-report.md`。
+
+需要放行某項破壞性變更時，在 `gradle/dependency-approvals.toml` 加入對應的核准項目（限定模組、座標與版本，並填寫 `reason` 供事後查閱）。
+
 ---
 
 ## 發布流程
@@ -207,14 +223,23 @@ byte[] content = s3Template.download(spec, AsyncResponseTransformer.toBytes())
 發布由 module-scoped git tag 觸發：
 
 ```bash
+# 1. 更新依賴基準線並一併提交（發布前會逐字驗證，落差會讓發布失敗）
+./gradlew updateDependencyBaseline
+
+# 2. 產生升級揭露，貼入 CHANGELOG 的「升級前必讀」段落
+./gradlew dependencyChangeReport --since=knolux-redis-spring-boot-starter/v1.3.0
+
+# 3. 打 tag 發布
 git tag knolux-redis-spring-boot-starter/v1.0.1
 git push origin knolux-redis-spring-boot-starter/v1.0.1
 ```
 
+`dependencyChangeReport` 產出 `build/reports/dependency-gate/change-report.md`，其中「⚠️ 升級前必讀」段落可原文貼入 CHANGELOG 與 Release notes，不需重新排版；此任務**永不失敗**，純粹是撰寫揭露用的資料來源。
+
 CI 工作流程：
 
-1. **CI**（push / PR）— 執行 `./gradlew test --continue`，PR 為唯讀快取模式
-2. **Publish**（tag 推送）— 對指定模組執行測試並發布至 GitHub Packages
+1. **CI**（push / PR）— 執行 `./gradlew test --continue` 與 `./gradlew checkDependencyCompatibility`，PR 為唯讀快取模式
+2. **Publish**（tag 推送）— 先以 `./gradlew checkDependencyBaseline` 確認基準線與實際解析一致，再對指定模組執行測試並發布至 GitHub Packages
 3. **Javadoc**（tag 推送）— 產生 Javadoc 並部署至 `gh-pages` 分支
 
 [Dependabot](./.github/dependabot.yml) 每週一自動掃描 Gradle 依賴與 GitHub Actions 版本更新。

@@ -1,27 +1,29 @@
 <!--
 Sync Impact Report
 ==================
-Version change: (template, unversioned) → 1.0.0
-Bump rationale: MAJOR — 首次批准，將全樣板文件轉為具體治理條文。
+Version change: 1.0.0 → 1.1.0
+Bump rationale: MINOR — 於既有章節新增依賴基準線的發版步驟與依賴相容性閘門條文，
+                未移除或重新定義任何原則，既有做法全數維持合規。
 
-Modified principles:
-  [PRINCIPLE_1_NAME] → I. 測試驅動開發（不可協商）
-  [PRINCIPLE_2_NAME] → II. SOLID
-  [PRINCIPLE_3_NAME] → III. 六角形架構與關注點分離
-  [PRINCIPLE_4_NAME] → IV. Fail-Fast 與可觀測性
-  [PRINCIPLE_5_NAME] → V. 可擴展性與可覆寫性
-  (new)              → VI. 命名與風格一致性
+Modified principles: 無（六條 Core Principles 內容未變）
 
-Added sections:
-  [SECTION_2_NAME]   → 技術與相容性約束
-  [SECTION_3_NAME]   → 開發流程與品質閘門
+Modified sections:
+  開發流程與品質閘門 → Commit 與發布：發布流程新增第 4 步（發版前更新依賴基準線），
+                                      原第 4、5 步順延為 5、6，並於 CHANGELOG 步驟
+                                      指出 dependencyChangeReport 為揭露內容的來源
+  開發流程與品質閘門 → 品質閘門：新增依賴相容性閘門條文（合併前寬容／發版前嚴格的分界、
+                                  核准紀錄不得為全域開關、閘門自身受原則 I 約束）
 
+Added sections: 無
 Removed sections: 無
 
-Follow-up TODOs: 無（所有 placeholder 皆已填實）
+Follow-up TODOs: 無
 
 Consistency notes:
-  - CLAUDE.md「品質準則」為本文件的執行期摘要，兩者須同步；本次內容自該節推導，維持一致。
+  - CLAUDE.md 已於同一批變更加入「依賴相容性閘門」小節與基準線／核准檔說明，與本文件一致。
+  - README.md 發布流程已同步加入 updateDependencyBaseline 與 dependencyChangeReport 步驟。
+  - 條文的完整規格見 specs/001-dep-breaking-change-gate/spec.md（FR-011a 與 FR-024 為
+    寬嚴分界的正式來源）。
   - .specify/templates/ 之 plan/spec/tasks 樣板於執行期讀取本文件，未修改。
 -->
 
@@ -155,15 +157,39 @@ MUST NOT 讓兩者長期不一致。
   1. 分支開發 → PR → `dev`（預發布 / RC）
   2. `dev` 累積至階段點
   3. `dev` → PR → `main`（正式 / GA）
-  4. 打上 module-scoped tag（`<module>/v<version>`）並發布 Release
-  5. 更新 `CHANGELOG.md`
+  4. 執行 `./gradlew updateDependencyBaseline`，並將基準線變更一併簽入
+  5. 打上 module-scoped tag（`<module>/v<version>`）並發布 Release
+  6. 更新 `CHANGELOG.md`（升級揭露內容以 `./gradlew dependencyChangeReport --since=<上一個 tag>`
+     產出的「⚠️ 升級前必讀」段落為來源）
 - 發版後 MUST 同步 README 中的安裝版號。
+
+第 4 步 MUST 在打 tag 之前完成：publish workflow 會以 `checkDependencyBaseline` 逐字驗證，
+落差會讓發布失敗，屆時只能補基準線、刪 tag、重打。此步驟建立的不變量是整套閘門的前提——
+**任何被發布出去的版本，其外溢依賴集合必定等於當時簽入的基準線紀錄**；缺了它，
+後續所有以歷史基準線進行的比對都只是在比兩份可能都不真實的檔案。
 
 **品質閘門**
 
 - `./gradlew test --continue` MUST 全綠才能合併（CI 使用的指令）。
 - 整合測試在有 Docker 的環境 MUST 實際執行；以 skip 數量掩蓋未驗證的變更不被接受。
 - 違反本文件任一原則時，MUST 在 PR 或回覆中明確說明取捨理由，MUST NOT 默默略過。
+
+**依賴相容性閘門**
+
+兩個 starter 以 `api` scope 曝露核心依賴，傳遞依賴的 major 跳動等同於對下游的破壞性變更，
+即使自有原始碼一行未改。
+
+- `./gradlew checkDependencyCompatibility` MUST 通過才能合併。major 跳動與依賴移除
+  MUST 讓建置失敗；minor / patch 與新增 MUST NOT 阻擋，僅列入報告。
+- 放行破壞性變更 MUST 透過 `gradle/dependency-approvals.toml` 的具名核准，限定模組、
+  座標與版本並填寫理由。核准 MUST 逐字比對版本，MUST NOT 實作為全域開關或忽略清單。
+- 合併前與發版前的寬嚴 MUST 有別：`checkDependencyCompatibility` 對非阻擋性的基準線落差
+  僅警告（否則機器人送來的每支 patch 更新 PR 都會紅燈，閘門會在數週內被停用）；
+  `checkDependencyBaseline` 對任何落差 MUST 失敗，因為發布不可回收。
+- 閘門自身的邏輯 MUST 與 Gradle task 分離並受原則 I 約束——修改前先寫失敗測試，
+  以 `./gradlew -p buildSrc test` 驗證（主建置不會連帶執行，CI MUST 明列此步驟）。
+- 閘門 MUST NOT 掛在 `check` 之下：`./gradlew build` 的行為不受影響，
+  只由 CI 步驟與人工顯式呼叫觸發。
 
 ## Governance
 
@@ -182,4 +208,4 @@ MUST NOT 讓兩者長期不一致。
 **合規審查**：所有 PR 審查 MUST 檢視是否符合本文件；額外的複雜度 MUST 有明確理由。
 執行期的日常開發指引見 `CLAUDE.md`，該檔案為本文件的摘要，MUST 與本文件保持一致。
 
-**Version**: 1.0.0 | **Ratified**: 2026-08-01 | **Last Amended**: 2026-08-01
+**Version**: 1.1.0 | **Ratified**: 2026-08-01 | **Last Amended**: 2026-08-02

@@ -16,8 +16,7 @@
 ## 情境 1：重現 2026-08-01 事件（對應 SC-001）★ 最關鍵
 
 這是整個功能存在的理由。redis 1.4.0 在自有原始碼零變更的情況下，
-把 Lettuce 帶過了 major，並讓 Netty 4.1.x 整條線消失，
-而人工比對第一遍**只發現了 Lettuce**，第二遍才發現 Netty。
+把 Lettuce 帶過了 major，而人工比對要到發布**之後**才發現。
 
 **做法**：以 `knolux-redis-spring-boot-starter/v1.3.0` 的實際依賴集合作為測試 fixture，
 斷言差異計算器對「當前（Spring Boot 4.1.0）」的解析結果同時產出兩項阻擋性差異。
@@ -37,14 +36,19 @@ git worktree remove /tmp/v130
 ./gradlew -p buildSrc test --tests '*Regression2026080*'
 ```
 
-**預期**：測試通過，且斷言明確涵蓋**兩項**：
+**預期**：測試通過，斷言涵蓋：
 
 | 依賴 | 期望類別 |
 |---|---|
 | `io.lettuce:lettuce-core` 6.8.2.RELEASE → 7.5.2.RELEASE | `MAJOR` |
-| `io.netty:netty-*` 4.1.x → 不存在 | `REMOVED` |
 
-只斷言 Lettuce 一項**不算通過**——那正是人工比對第一遍犯的錯，此測試的價值就在於防止同樣的漏看。
+> **原始事件回顧有一處記錯，實作時已以 fixture 更正**：當時記為「`io.netty` 4.1.x 整條線消失」，
+> 但以 `v1.3.0` worktree 實際解析後確認，**兩側 runtimeClasspath 都不含 `io.netty` 4.1.x**，
+> 因此不存在依賴移除，真正發生的是 Netty 版本線隨 Lettuce 一併換代。
+> 測試以 `redis 兩側都不存在 Netty 4-1-x 因此沒有依賴移除` 明確固定此事實，
+> 免得日後有人依錯誤前提「補上」一個永遠不會成立的斷言。
+
+此情境的價值因此在於**一次列出全部阻擋項**（FR-012），而非補抓某個特定的漏看項目。
 
 ---
 
