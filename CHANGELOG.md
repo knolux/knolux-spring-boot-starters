@@ -15,6 +15,32 @@
 
 ---
 
+## [2026-08-02] — redis 1.4.1 · s3 1.3.1
+
+**兩個模組的 artifact 內容與前一版完全相同**：自 `redis/v1.4.0`、`s3/v1.3.0` 以來
+`.java` 變更為空，外溢給下游的 resolved 依賴集合也逐字未變（redis 49 筆、s3 62 筆）。
+已在使用前一版者**無需升級**。
+
+本版純粹反映建置基礎設施的變更，並藉此讓發版流程實際跑過一次新增的發版前閘門。
+
+### Added
+
+- **傳遞依賴破壞性變更閘門**：以 `api` scope 曝露的依賴一旦發生 major 跳動或依賴移除，
+  在合併前而非發布後被攔下。redis 1.4.0 那次 Lettuce 6 → 7 的跨 major 變動就是此機制要防的情形
+  - `./gradlew checkDependencyCompatibility` —— PR 時比對外溢依賴，major 跳動與依賴移除會讓 CI 失敗，
+    minor / patch 僅列入報告（避免每週的 Dependabot PR 全數紅燈）
+  - `./gradlew checkDependencyBaseline` —— 發布前逐字驗證基準線，任何落差皆失敗
+  - `./gradlew updateDependencyBaseline` —— 重新產生基準線檔，發版前必跑
+  - `./gradlew dependencyChangeReport --since=<tag>` —— 產生可直接貼進 CHANGELOG 的升級揭露
+- `gradle/dependency-baseline/<module>.txt`：各模組外溢依賴集合的簽入基準線。
+  依賴變動因此成為 PR diff 中可審閱的事件，而非埋在 CI log 裡
+- `gradle/dependency-approvals.toml`：破壞性變更的核准紀錄，限定模組／座標／版本區間並附 `reason`，
+  刻意不做成全域開關
+
+閘門刻意**不掛在 `check` 之下**，`./gradlew build` 的行為完全不受影響。
+
+---
+
 ## [2026-08-01] — redis 1.4.0 · s3 1.3.0
 
 ### ⚠️ 升級前必讀：`knolux-redis-spring-boot-starter` 的傳遞依賴破壞性變更
