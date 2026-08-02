@@ -22,6 +22,10 @@ jobs:
     steps:
       - name: Checkout
         uses: actions/checkout@v7
+        with:
+          # 依賴閘門需要 merge-base 與 tag；預設的淺層 clone（depth 1）兩者都取不到，
+          # 且失敗會表現成「找不到 ref」這類看不出根因的訊息。本 repo 體積小，全深度成本可忽略。
+          fetch-depth: 0
 
       - name: Set up JDK ${{ matrix.java }}
         uses: actions/setup-java@v5
@@ -35,8 +39,36 @@ jobs:
           # PR 在唯讀模式（避免污染 main 的快取）；main / dev push 寫入快取
           cache-read-only: ${{ github.event_name == 'pull_request' }}
 
+      # 主建置不會連帶執行 buildSrc 的測試（已於 Gradle 9.6.1 實測），故必須明列。
+      # 少了這一步，依賴閘門自身的測試將從未跑過——一個用來確保正確性的機制卻沒有任何測試保護。
+      - name: Run dependency gate unit tests
+        run: ./gradlew -p buildSrc test
+
       - name: Run tests
         run: ./gradlew test --continue
+
+      # 即使上一步失敗也要跑：讓單次 CI 就把「測試壞了」與「依賴被動了」一次講完，
+      # 而不是修一項、重跑、又冒出一項（FR-012 的精神）。
+      - name: Dependency compatibility gate
+        if: ${{ !cancelled() }}
+        env:
+          # pull_request 事件才有 base_ref；push 時留空，由任務依序嘗試 origin/dev、origin/main
+          BASE_REF: ${{ github.base_ref }}
+        run: |
+          if [ -n "$BASE_REF" ]; then
+            ./gradlew checkDependencyCompatibility --base="origin/$BASE_REF"
+          else
+            ./gradlew checkDependencyCompatibility
+          fi
+
+      # 閘門擋下 PR 的當下，報告正是維護者最需要的東西，故 MUST 為 always()（FR-019）
+      - name: Upload dependency gate report
+        if: always()
+        uses: actions/upload-artifact@v7
+        with:
+          name: dependency-gate-report-java${{ matrix.java }}
+          path: '**/build/reports/dependency-gate/'
+          retention-days: 7
 
       - name: Upload test report on failure
         if: failure()

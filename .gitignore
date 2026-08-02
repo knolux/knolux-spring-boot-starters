@@ -46,5 +46,10 @@ logs_*/
 .remember/
 CLAUDE.md
 AGENTS.md
+
+# SpecKit 產出物僅保留於本機：規格、憲章與任務清單是開發過程的工作底稿，
+# 不隨 artifact 發布，也不作為 PR 的審查對象。
+.specify/
+specs/
 .gitnexus/
 docs/superpowers/

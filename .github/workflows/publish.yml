@@ -37,6 +37,14 @@ jobs:
           echo "module=$MODULE" >> $GITHUB_OUTPUT
           echo "version=$VERSION" >> $GITHUB_OUTPUT
 
+      # 建立整套依賴閘門賴以成立的不變量：**發布出去的版本，其外溢依賴集合必定等於當時簽入的
+      # 基準線檔案**（FR-024）。少了這一步，後續所有以歷史基準線進行的比對都只是在比兩份
+      # 可能都不真實的檔案。此處不套用閘門本體對非阻擋性落差的寬容——發布不可回收。
+      #
+      # 刻意排在測試之前：落差一旦存在就必須補基準線並重新打 tag，先跑完整測試只是白等。
+      - name: Verify dependency baseline is current
+        run: ./gradlew checkDependencyBaseline
+
       - name: Run module tests
         run: ./gradlew :${{ steps.meta.outputs.module }}:test
 

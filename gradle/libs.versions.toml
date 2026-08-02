@@ -2,6 +2,10 @@
 testcontainers-redis = "2.2.4"
 testcontainers = "1.21.4"
 awssdk = "2.49.3"
+# 以下兩項僅供 buildSrc（依賴閘門的建置邏輯）使用，不進入任何發布的 artifact。
+# buildSrc 取不到 Spring Boot BOM，故版號必須寫死；junit 版號請與主專案由 BOM 解析出的版本一致。
+tomlj = "1.1.1"
+junit = "6.0.3"
 
 [libraries]
 spring-boot-autoconfigure = { module = "org.springframework.boot:spring-boot-autoconfigure" }
@@ -18,3 +22,7 @@ lombok = { module = "org.projectlombok:lombok" }
 awssdk-bom = { module = "software.amazon.awssdk:bom", version.ref = "awssdk" }
 awssdk-s3 = { module = "software.amazon.awssdk:s3" }
 awssdk-netty-nio-client = { module = "software.amazon.awssdk:netty-nio-client" }
+# buildSrc 專用（依賴閘門）
+tomlj = { module = "org.tomlj:tomlj", version.ref = "tomlj" }
+junit-bom = { module = "org.junit:junit-bom", version.ref = "junit" }
+junit-jupiter = { module = "org.junit.jupiter:junit-jupiter" }
