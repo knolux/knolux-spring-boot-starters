@@ -44,7 +44,6 @@ logs_*/
 ### Claude / AI workspace ###
 .claude/
 .remember/
-CLAUDE.md
 AGENTS.md
 .gitnexus/
 docs/superpowers/
