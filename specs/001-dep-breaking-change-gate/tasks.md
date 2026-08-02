@@ -192,11 +192,21 @@ T014 ~ T018 為 port 與 adapter（憲章 III）。兩者的邊界不得模糊�
 
 **Purpose**: 讓閘門在 CI 上真正生效。此階段的第一項是整個功能**最容易遺漏、且失敗訊息最不直觀**的一點。
 
-- [ ] T055 ⚠️ 於 `.github/workflows/ci.yml:24` 的 `actions/checkout@v7` 加上 `fetch-depth: 0`。**不改這一行，閘門在 CI 上必然無法運作**——預設淺層 clone（depth 1）取不到 merge-base，也取不到任何 tag，而失敗會表現為「找不到 ref」這類難以聯想到根因的訊息（research.md R6）
-- [ ] T056 於 `.github/workflows/ci.yml` 新增獨立步驟執行 `./gradlew checkDependencyCompatibility --base=origin/${{ github.base_ref }}`，作為與 `test` 並列的獨立步驟，不併入既有建置步驟
-- [ ] T057 於 `.github/workflows/ci.yml` 加入 `actions/upload-artifact` 上傳 `**/build/reports/dependency-gate/`，**MUST 設 `if: always()`**——閘門失敗時報告尤其重要（FR-019）
-- [ ] T058 於 `.github/workflows/ci.yml` 明確加入 `./gradlew -p buildSrc test` 步驟。**T003 已實測確認主建置不會自動執行 buildSrc 的測試**，故此步驟為必要——遺漏將導致閘門自身的測試從未跑過，一個「用來確保正確性」的機制卻沒有任何測試保護
-- [ ] T059 於 `.github/workflows/publish.yml` 的發布步驟**之前**加入 `./gradlew checkDependencyBaseline`。此步驟建立 R2 決策的核心不變量：**任何被發布出去的 artifact，其外溢依賴集合必定等於當時簽入的基準線檔案**
+- [x] T055 ⚠️ 於 `.github/workflows/ci.yml:24` 的 `actions/checkout@v7` 加上 `fetch-depth: 0`。**不改這一行，閘門在 CI 上必然無法運作**——預設淺層 clone（depth 1）取不到 merge-base，也取不到任何 tag，而失敗會表現為「找不到 ref」這類難以聯想到根因的訊息（research.md R6）
+- [x] T056 於 `.github/workflows/ci.yml` 新增獨立步驟執行 `./gradlew checkDependencyCompatibility --base=origin/${{ github.base_ref }}`，作為與 `test` 並列的獨立步驟，不併入既有建置步驟
+  - `github.base_ref` 僅 `pull_request` 事件有值，push 至 `main` / `dev` 時為空字串。若直接內插會產生 `--base=origin/`（不存在的 ref）而讓閘門在 push 上必定失敗，故以 shell 條件分流：有值才傳 `--base`，否則交由任務依序嘗試 `origin/dev`、`origin/main`。
+  - 該步驟設 `if: ${{ !cancelled() }}`，即使 `Run tests` 失敗也照跑。讓單次 CI 就把「測試壞了」與「依賴被動了」一次講完，與 FR-012 避免「修一項、重跑、又冒出一項」的精神一致。
+- [x] T057 於 `.github/workflows/ci.yml` 加入 `actions/upload-artifact` 上傳 `**/build/reports/dependency-gate/`，**MUST 設 `if: always()`**——閘門失敗時報告尤其重要（FR-019）
+- [x] T058 於 `.github/workflows/ci.yml` 明確加入 `./gradlew -p buildSrc test` 步驟。**T003 已實測確認主建置不會自動執行 buildSrc 的測試**，故此步驟為必要——遺漏將導致閘門自身的測試從未跑過，一個「用來確保正確性」的機制卻沒有任何測試保護
+- [x] T059 於 `.github/workflows/publish.yml` 的發布步驟**之前**加入 `./gradlew checkDependencyBaseline`。此步驟建立 R2 決策的核心不變量：**任何被發布出去的 artifact，其外溢依賴集合必定等於當時簽入的基準線檔案**
+  - 排在 `Run module tests` **之前**：落差一旦存在就得補基準線並重新打 tag，先跑完整測試只是白等。
+  - 此任務不需 git 歷史（只讀工作區檔案與當前解析結果），故 `publish.yml` 無須比照 T055 加 `fetch-depth: 0`。
+
+**本階段的本地驗證**（workflow 無法在本機執行，故逐項驗證其所執行的指令）：
+
+- YAML 剖析通過，ci.yml 9 個步驟、publish.yml 7 個步驟順序正確
+- `./gradlew checkDependencyBaseline` → ✅ 2 個模組與簽入內容一致（T059 步驟）
+- 以 `BASE_REF=""` 模擬 push 事件的分流指令 → 閘門通過，且兩個模組皆因 merge-base 當時尚無基準線而**跳過並記入報告**（FR-005 正確行為，非靜默放行）
 
 **Checkpoint**: CI 上的閘門與發布保護皆已生效
 
