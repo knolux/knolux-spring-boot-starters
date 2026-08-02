@@ -56,6 +56,8 @@ loadScripts(document, 'script');</script>
 <li><a href="#method-summary" tabindex="0">Method Summary</a></li>
 <li><a href="#method-detail" tabindex="0">Method Details</a>
 <ol class="toc-list">
+<li><a href="#isTls(java.net.URI)" tabindex="0">isTls(URI)</a></li>
+<li><a href="#baseScheme(java.net.URI)" tabindex="0">baseScheme(URI)</a></li>
 <li><a href="#parsePassword(java.net.URI)" tabindex="0">parsePassword(URI)</a></li>
 <li><a href="#parseDb(java.lang.String)" tabindex="0">parseDb(String)</a></li>
 <li><a href="#parseReadFrom(java.lang.String)" tabindex="0">parseReadFrom(String)</a></li>
@@ -96,10 +98,20 @@ loadScripts(document, 'script');</script>
 <div class="table-header col-first">Modifier and Type</div>
 <div class="table-header col-second">Method</div>
 <div class="table-header col-last">Description</div>
-<div class="col-first even-row-color method-summary-table method-summary-table-tab1 method-summary-table-tab4"><code>static boolean</code></div>
-<div class="col-second even-row-color method-summary-table method-summary-table-tab1 method-summary-table-tab4"><code><a href="#isMasterOnly(java.lang.String)" class="member-name-link">isMasterOnly</a><wbr>(<a href="https://docs.oracle.com/en/java/javase/25/docs/api/java.base/java/lang/String.html" title="class or interface in java.lang" class="external-link">String</a>&nbsp;readFrom)</code></div>
+<div class="col-first even-row-color method-summary-table method-summary-table-tab1 method-summary-table-tab4"><code>static <a href="https://docs.oracle.com/en/java/javase/25/docs/api/java.base/java/lang/String.html" title="class or interface in java.lang" class="external-link">String</a></code></div>
+<div class="col-second even-row-color method-summary-table method-summary-table-tab1 method-summary-table-tab4"><code><a href="#baseScheme(java.net.URI)" class="member-name-link">baseScheme</a><wbr>(<a href="https://docs.oracle.com/en/java/javase/25/docs/api/java.base/java/net/URI.html" title="class or interface in java.net" class="external-link">URI</a>&nbsp;uri)</code></div>
 <div class="col-last even-row-color method-summary-table method-summary-table-tab1 method-summary-table-tab4">
+<div class="block">取得 URI 的「基礎 scheme」——轉為小寫並去除 TLS 標記。</div>
+</div>
+<div class="col-first odd-row-color method-summary-table method-summary-table-tab1 method-summary-table-tab4"><code>static boolean</code></div>
+<div class="col-second odd-row-color method-summary-table method-summary-table-tab1 method-summary-table-tab4"><code><a href="#isMasterOnly(java.lang.String)" class="member-name-link">isMasterOnly</a><wbr>(<a href="https://docs.oracle.com/en/java/javase/25/docs/api/java.base/java/lang/String.html" title="class or interface in java.lang" class="external-link">String</a>&nbsp;readFrom)</code></div>
+<div class="col-last odd-row-color method-summary-table method-summary-table-tab1 method-summary-table-tab4">
 <div class="block">判斷給定的 readFrom 字串是否為純 MASTER / UPSTREAM 模式。</div>
+</div>
+<div class="col-first even-row-color method-summary-table method-summary-table-tab1 method-summary-table-tab4"><code>static boolean</code></div>
+<div class="col-second even-row-color method-summary-table method-summary-table-tab1 method-summary-table-tab4"><code><a href="#isTls(java.net.URI)" class="member-name-link">isTls</a><wbr>(<a href="https://docs.oracle.com/en/java/javase/25/docs/api/java.base/java/net/URI.html" title="class or interface in java.net" class="external-link">URI</a>&nbsp;uri)</code></div>
+<div class="col-last even-row-color method-summary-table method-summary-table-tab1 method-summary-table-tab4">
+<div class="block">判斷 URI 是否使用 TLS（<code>rediss</code> 系列 scheme）。</div>
 </div>
 <div class="col-first odd-row-color method-summary-table method-summary-table-tab1 method-summary-table-tab4"><code>static int</code></div>
 <div class="col-second odd-row-color method-summary-table method-summary-table-tab1 method-summary-table-tab4"><code><a href="#parseDb(java.lang.String)" class="member-name-link">parseDb</a><wbr>(<a href="https://docs.oracle.com/en/java/javase/25/docs/api/java.base/java/lang/String.html" title="class or interface in java.lang" class="external-link">String</a>&nbsp;path)</code></div>
@@ -133,6 +145,48 @@ loadScripts(document, 'script');</script>
 <section class="method-details" id="method-detail">
 <h2>Method Details</h2>
 <ul class="member-list">
+<li>
+<section class="detail" id="isTls(java.net.URI)">
+<h3>isTls</h3>
+<div class="horizontal-scroll">
+<div class="member-signature"><span class="modifiers">public static</span>&nbsp;<span class="return-type">boolean</span>&nbsp;<span class="element-name">isTls</span><wbr><span class="parameters">(<a href="https://docs.oracle.com/en/java/javase/25/docs/api/java.base/java/net/URI.html" title="class or interface in java.net" class="external-link">URI</a>&nbsp;uri)</span></div>
+<div class="block">判斷 URI 是否使用 TLS（<code>rediss</code> 系列 scheme）。
+
+<p>本 starter 以 scheme 單一來源決定是否加密，不另設 <code>ssl.enabled</code> 旗標，
+避免出現「<code>rediss://</code> 但 <code>ssl.enabled=false</code>」這種互相矛盾的無效狀態。
+
+<p>支援的 TLS scheme（不區分大小寫，RFC 3986 規定 scheme 不分大小寫）：
+<code>rediss://</code>、<code>rediss-sentinel://</code>、<code>rediss-cluster://</code>。</div>
+<dl class="notes">
+<dt>Parameters:</dt>
+<dd><code>uri</code> - 已解析的 Redis URI，可為 <code>null</code></dd>
+<dt>Returns:</dt>
+<dd><code>true</code> 當 scheme 為已知的 TLS 別名</dd>
+</dl>
+</div>
+</section>
+</li>
+<li>
+<section class="detail" id="baseScheme(java.net.URI)">
+<h3>baseScheme</h3>
+<div class="horizontal-scroll">
+<div class="member-signature"><span class="modifiers">public static</span>&nbsp;<span class="return-type"><a href="https://docs.oracle.com/en/java/javase/25/docs/api/java.base/java/lang/String.html" title="class or interface in java.lang" class="external-link">String</a></span>&nbsp;<span class="element-name">baseScheme</span><wbr><span class="parameters">(<a href="https://docs.oracle.com/en/java/javase/25/docs/api/java.base/java/net/URI.html" title="class or interface in java.net" class="external-link">URI</a>&nbsp;uri)</span></div>
+<div class="block">取得 URI 的「基礎 scheme」——轉為小寫並去除 TLS 標記。
+
+<p>例如 <code>REDISS-CLUSTER://</code> 與 <code>redis-cluster://</code> 都會得到
+<code>"redis-cluster"</code>，讓各 builder 的 <code>supports()</code> 只需比對一個值，
+不必為每種模式重複寫「明文或 TLS」的雙重判斷。
+
+<p>未知 scheme 原樣以小寫回傳（不做任何猜測式改寫），交由呼叫端 fail-fast。</div>
+<dl class="notes">
+<dt>Parameters:</dt>
+<dd><code>uri</code> - 已解析的 Redis URI，可為 <code>null</code></dd>
+<dt>Returns:</dt>
+<dd>小寫且去除 TLS 標記的 scheme；URI 或 scheme 為 <code>null</code> 時回傳 <code>null</code></dd>
+</dl>
+</div>
+</section>
+</li>
 <li>
 <section class="detail" id="parsePassword(java.net.URI)">
 <h3>parsePassword</h3>

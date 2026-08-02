@@ -55,6 +55,7 @@ loadScripts(document, 'script');</script>
 <li><a href="#" tabindex="0">Description</a>
 <ol class="toc-list">
 <li><a href="#--heading" tabindex="0">支援的連線模式</a></li>
+<li><a href="#azure-managed-redis-entra-id-heading" tabindex="0">Azure Managed Redis + Entra ID</a></li>
 <li><a href="#bean--heading" tabindex="0">Bean 覆寫機制</a></li>
 <li><a href="#--heading1" tabindex="0">設定範例</a></li>
 </ol>
@@ -68,7 +69,8 @@ loadScripts(document, 'script');</script>
 </li>
 <li><a href="#method-detail" tabindex="0">Method Details</a>
 <ol class="toc-list">
-<li><a href="#redisConnectionFactory()" tabindex="0">redisConnectionFactory()</a></li>
+<li><a href="#knoluxRedisEntraIdCredentialsProviderFactory()" tabindex="0">knoluxRedisEntraIdCredentialsProviderFactory()</a></li>
+<li><a href="#redisConnectionFactory(org.springframework.beans.factory.ObjectProvider)" tabindex="0">redisConnectionFactory(ObjectProvider)</a></li>
 <li><a href="#stringRedisTemplate(org.springframework.data.redis.connection.RedisConnectionFactory)" tabindex="0">stringRedisTemplate(RedisConnectionFactory)</a></li>
 <li><a href="#redisTemplate(org.springframework.data.redis.connection.RedisConnectionFactory)" tabindex="0">redisTemplate(RedisConnectionFactory)</a></li>
 <li><a href="#knoluxRedisHealthIndicator(org.springframework.data.redis.core.StringRedisTemplate)" tabindex="0">knoluxRedisHealthIndicator(StringRedisTemplate)</a></li>
@@ -109,12 +111,26 @@ loadScripts(document, 'script');</script>
       直接連接單一 Redis 節點，適用於開發環境或不需高可用的場景</li>
   <li><strong>Sentinel（高可用）模式</strong> — URL scheme 為 <code>redis-sentinel://</code>，
       透過 Redis Sentinel 哨兵機制實現主從自動切換，適用於生產環境</li>
+  <li><strong>Cluster（分片）模式</strong> — URL scheme 為 <code>redis-cluster://</code>，
+      URL 中的節點為種子節點，客戶端連上後自行取得完整拓撲</li>
 </ul>
+
+<p>三者各有對應的 TLS scheme：<code>rediss://</code>、<code>rediss-sentinel://</code>、
+<code>rediss-cluster://</code>。是否加密<strong>僅由 scheme 決定</strong>，
+未列於上述清單的 scheme 一律 fail-fast，不會被任何模式靜默收下。
+
+<h2 id="azure-managed-redis-entra-id-heading">Azure Managed Redis + Entra ID</h2>
+<p>設定 <code>knolux.redis.azure.entra-id.enabled=true</code> 後，憑證改由 Microsoft Entra ID
+的 token 提供，設定檔中不需要任何密碼；token 會在到期前自動更新，並對既有連線重新驗證。
+此模式需要 classpath 上有 <code>redis.clients.authentication:redis-authx-entraid</code>
+（本 starter 以 <code>compileOnly</code> 引入，未啟用者不必背負其傳遞依賴）。
 
 <h2 id="bean--heading">Bean 覆寫機制</h2>
 <p>所有 Bean 均標注 <code>ConditionalOnMissingBean</code>，
 若使用者在自己的 <code>@Configuration</code> 類別中定義了相同型別的 Bean，
 自動設定的 Bean 將不會被建立，讓使用者得以完全自訂連線行為。
+憑證來源同樣可覆寫：自訂 <code>RedisCredentialsProviderFactory</code> Bean 會取代內建的
+Entra ID 實作，並一樣享有憑證輪替時的自動重新驗證。
 
 <h2 id="--heading1">設定範例</h2>
 <pre><code># application.yml
@@ -123,13 +139,25 @@ knolux:
     url: redis://:password@localhost:6379
     timeout-ms: 1000ms
     read-from: REPLICA_PREFERRED
+</code></pre>
+
+<pre><code># Azure Managed Redis（OSS clustering policy）+ 系統指派受控身分
+knolux:
+  redis:
+    url: rediss-cluster://mycache.eastus.redis.azure.net:10000
+    timeout-ms: 3000ms
+    azure:
+      entra-id:
+        enabled: true
+        identity: SYSTEM_ASSIGNED
 </code></pre></div>
 <dl class="notes">
 <dt>See Also:</dt>
 <dd>
-<ul class="tag-list">
+<ul class="tag-list-long">
 <li><a href="KnoluxRedisProperties.html" title="class in com.knolux.redis"><code>KnoluxRedisProperties</code></a></li>
 <li><a href="KnoluxRedisHealthIndicator.html" title="class in com.knolux.redis"><code>KnoluxRedisHealthIndicator</code></a></li>
+<li><a href="azure/EntraIdCredentialsProviderFactory.html" title="class in com.knolux.redis.azure"><code>EntraIdCredentialsProviderFactory</code></a></li>
 </ul>
 </dd>
 </dl>
@@ -161,25 +189,32 @@ knolux:
 <div class="table-header col-first">Modifier and Type</div>
 <div class="table-header col-second">Method</div>
 <div class="table-header col-last">Description</div>
-<div class="col-first even-row-color method-summary-table method-summary-table-tab2 method-summary-table-tab4"><code><a href="KnoluxRedisHealthIndicator.html" title="class in com.knolux.redis">KnoluxRedisHealthIndicator</a></code></div>
-<div class="col-second even-row-color method-summary-table method-summary-table-tab2 method-summary-table-tab4"><code><a href="#knoluxRedisHealthIndicator(org.springframework.data.redis.core.StringRedisTemplate)" class="member-name-link">knoluxRedisHealthIndicator</a><wbr>(org.springframework.data.redis.core.StringRedisTemplate&nbsp;template)</code></div>
+<div class="col-first even-row-color method-summary-table method-summary-table-tab2 method-summary-table-tab4"><code><a href="azure/EntraIdCredentialsProviderFactory.html" title="class in com.knolux.redis.azure">EntraIdCredentialsProviderFactory</a></code></div>
+<div class="col-second even-row-color method-summary-table method-summary-table-tab2 method-summary-table-tab4"><code><a href="#knoluxRedisEntraIdCredentialsProviderFactory()" class="member-name-link">knoluxRedisEntraIdCredentialsProviderFactory</a>()</code></div>
 <div class="col-last even-row-color method-summary-table method-summary-table-tab2 method-summary-table-tab4">
+<div class="block">建立以 Microsoft Entra ID token 為憑證來源的
+<code>RedisCredentialsProviderFactory</code>，僅在
+<code>knolux.redis.azure.entra-id.enabled=true</code> 時建立。</div>
+</div>
+<div class="col-first odd-row-color method-summary-table method-summary-table-tab2 method-summary-table-tab4"><code><a href="KnoluxRedisHealthIndicator.html" title="class in com.knolux.redis">KnoluxRedisHealthIndicator</a></code></div>
+<div class="col-second odd-row-color method-summary-table method-summary-table-tab2 method-summary-table-tab4"><code><a href="#knoluxRedisHealthIndicator(org.springframework.data.redis.core.StringRedisTemplate)" class="member-name-link">knoluxRedisHealthIndicator</a><wbr>(org.springframework.data.redis.core.StringRedisTemplate&nbsp;template)</code></div>
+<div class="col-last odd-row-color method-summary-table method-summary-table-tab2 method-summary-table-tab4">
 <div class="block">建立 Redis 連線健康指標 Bean，Bean 名稱為 <code>knoluxRedis</code>。</div>
 </div>
-<div class="col-first odd-row-color method-summary-table method-summary-table-tab2 method-summary-table-tab4"><code>org.springframework.data.redis.connection.lettuce.LettuceConnectionFactory</code></div>
-<div class="col-second odd-row-color method-summary-table method-summary-table-tab2 method-summary-table-tab4"><code><a href="#redisConnectionFactory()" class="member-name-link">redisConnectionFactory</a>()</code></div>
-<div class="col-last odd-row-color method-summary-table method-summary-table-tab2 method-summary-table-tab4">
+<div class="col-first even-row-color method-summary-table method-summary-table-tab2 method-summary-table-tab4"><code>org.springframework.data.redis.connection.lettuce.LettuceConnectionFactory</code></div>
+<div class="col-second even-row-color method-summary-table method-summary-table-tab2 method-summary-table-tab4"><code><a href="#redisConnectionFactory(org.springframework.beans.factory.ObjectProvider)" class="member-name-link">redisConnectionFactory</a><wbr>(org.springframework.beans.factory.ObjectProvider&lt;org.springframework.data.redis.connection.lettuce.RedisCredentialsProviderFactory&gt;&nbsp;credentialsProviderFactory)</code></div>
+<div class="col-last even-row-color method-summary-table method-summary-table-tab2 method-summary-table-tab4">
 <div class="block">建立並設定 <code>LettuceConnectionFactory</code>（Redis 連線工廠）。</div>
 </div>
-<div class="col-first even-row-color method-summary-table method-summary-table-tab2 method-summary-table-tab4"><code>org.springframework.data.redis.core.RedisTemplate<wbr>&lt;<a href="https://docs.oracle.com/en/java/javase/25/docs/api/java.base/java/lang/String.html" title="class or interface in java.lang" class="external-link">String</a>,<wbr><a href="https://docs.oracle.com/en/java/javase/25/docs/api/java.base/java/lang/Object.html" title="class or interface in java.lang" class="external-link">Object</a>&gt;</code></div>
-<div class="col-second even-row-color method-summary-table method-summary-table-tab2 method-summary-table-tab4"><code><a href="#redisTemplate(org.springframework.data.redis.connection.RedisConnectionFactory)" class="member-name-link">redisTemplate</a><wbr>(org.springframework.data.redis.connection.RedisConnectionFactory&nbsp;factory)</code></div>
-<div class="col-last even-row-color method-summary-table method-summary-table-tab2 method-summary-table-tab4">
+<div class="col-first odd-row-color method-summary-table method-summary-table-tab2 method-summary-table-tab4"><code>org.springframework.data.redis.core.RedisTemplate<wbr>&lt;<a href="https://docs.oracle.com/en/java/javase/25/docs/api/java.base/java/lang/String.html" title="class or interface in java.lang" class="external-link">String</a>,<wbr><a href="https://docs.oracle.com/en/java/javase/25/docs/api/java.base/java/lang/Object.html" title="class or interface in java.lang" class="external-link">Object</a>&gt;</code></div>
+<div class="col-second odd-row-color method-summary-table method-summary-table-tab2 method-summary-table-tab4"><code><a href="#redisTemplate(org.springframework.data.redis.connection.RedisConnectionFactory)" class="member-name-link">redisTemplate</a><wbr>(org.springframework.data.redis.connection.RedisConnectionFactory&nbsp;factory)</code></div>
+<div class="col-last odd-row-color method-summary-table method-summary-table-tab2 method-summary-table-tab4">
 <div class="block">建立通用 <code>RedisTemplate</code><code>&lt;String, Object&gt;</code>，key 與 hash key 使用
 <code>StringRedisSerializer</code>，value 使用預設的 JDK 序列化。</div>
 </div>
-<div class="col-first odd-row-color method-summary-table method-summary-table-tab2 method-summary-table-tab4"><code>org.springframework.data.redis.core.StringRedisTemplate</code></div>
-<div class="col-second odd-row-color method-summary-table method-summary-table-tab2 method-summary-table-tab4"><code><a href="#stringRedisTemplate(org.springframework.data.redis.connection.RedisConnectionFactory)" class="member-name-link">stringRedisTemplate</a><wbr>(org.springframework.data.redis.connection.RedisConnectionFactory&nbsp;factory)</code></div>
-<div class="col-last odd-row-color method-summary-table method-summary-table-tab2 method-summary-table-tab4">
+<div class="col-first even-row-color method-summary-table method-summary-table-tab2 method-summary-table-tab4"><code>org.springframework.data.redis.core.StringRedisTemplate</code></div>
+<div class="col-second even-row-color method-summary-table method-summary-table-tab2 method-summary-table-tab4"><code><a href="#stringRedisTemplate(org.springframework.data.redis.connection.RedisConnectionFactory)" class="member-name-link">stringRedisTemplate</a><wbr>(org.springframework.data.redis.connection.RedisConnectionFactory&nbsp;factory)</code></div>
+<div class="col-last even-row-color method-summary-table method-summary-table-tab2 method-summary-table-tab4">
 <div class="block">建立 <code>StringRedisTemplate</code>，key 與 value 均使用 UTF-8 字串序列化。</div>
 </div>
 </div>
@@ -216,21 +251,58 @@ knolux:
 <h2>Method Details</h2>
 <ul class="member-list">
 <li>
-<section class="detail" id="redisConnectionFactory()">
+<section class="detail" id="knoluxRedisEntraIdCredentialsProviderFactory()">
+<h3>knoluxRedisEntraIdCredentialsProviderFactory</h3>
+<div class="horizontal-scroll">
+<div class="member-signature"><span class="annotations">@Bean(destroyMethod="close")
+@ConditionalOnProperty(prefix="knolux.redis.azure.entra-id",
+                       name="enabled",
+                       havingValue="true")
+@ConditionalOnMissingBean(org.springframework.data.redis.connection.lettuce.RedisCredentialsProviderFactory.class)
+</span><span class="modifiers">public</span>&nbsp;<span class="return-type"><a href="azure/EntraIdCredentialsProviderFactory.html" title="class in com.knolux.redis.azure">EntraIdCredentialsProviderFactory</a></span>&nbsp;<span class="element-name">knoluxRedisEntraIdCredentialsProviderFactory</span>()</div>
+<div class="block">建立以 Microsoft Entra ID token 為憑證來源的
+<code>RedisCredentialsProviderFactory</code>，僅在
+<code>knolux.redis.azure.entra-id.enabled=true</code> 時建立。
+
+<p>此 Bean 以 <code>destroyMethod = "close"</code> 註冊：底層的 token 提供者持有背景更新排程
+與非 daemon 執行緒池，其生命週期明載「由外部管理」，不關閉會讓 JVM 無法正常結束。
+
+<p>條件為 <code>ConditionalOnMissingBean</code><code>(RedisCredentialsProviderFactory.class)</code>
+而非本型別，讓使用者能以任何自訂的憑證來源（例如其他 IdP）整個取代它——
+<a href="#redisConnectionFactory(org.springframework.beans.factory.ObjectProvider)"><code>redisConnectionFactory(ObjectProvider)</code></a> 取用的是介面型別，替換後一樣會啟用憑證輪替。</div>
+<dl class="notes">
+<dt>Returns:</dt>
+<dd>Entra ID 憑證提供者工廠</dd>
+<dt>Throws:</dt>
+<dd><code><a href="https://docs.oracle.com/en/java/javase/25/docs/api/java.base/java/lang/IllegalArgumentException.html" title="class or interface in java.lang" class="external-link">IllegalArgumentException</a></code> - 連線 URI 或身分設定不符前置條件時（訊息帶實際值與修正方式）</dd>
+<dt>See Also:</dt>
+<dd>
+<ul class="tag-list-long">
+<li><a href="azure/EntraIdCredentialsProviderFactory.html#forConnection(java.net.URI,com.knolux.redis.KnoluxRedisProperties)"><code>EntraIdCredentialsProviderFactory.forConnection(URI, KnoluxRedisProperties)</code></a></li>
+</ul>
+</dd>
+</dl>
+</div>
+</section>
+</li>
+<li>
+<section class="detail" id="redisConnectionFactory(org.springframework.beans.factory.ObjectProvider)">
 <h3>redisConnectionFactory</h3>
 <div class="horizontal-scroll">
 <div class="member-signature"><span class="annotations">@Bean
 @ConditionalOnMissingBean(org.springframework.data.redis.connection.RedisConnectionFactory.class)
-</span><span class="modifiers">public</span>&nbsp;<span class="return-type">org.springframework.data.redis.connection.lettuce.LettuceConnectionFactory</span>&nbsp;<span class="element-name">redisConnectionFactory</span>()</div>
+</span><span class="modifiers">public</span>&nbsp;<span class="return-type">org.springframework.data.redis.connection.lettuce.LettuceConnectionFactory</span>&nbsp;<span class="element-name">redisConnectionFactory</span><wbr><span class="parameters">(org.springframework.beans.factory.ObjectProvider&lt;org.springframework.data.redis.connection.lettuce.RedisCredentialsProviderFactory&gt;&nbsp;credentialsProviderFactory)</span></div>
 <div class="block">建立並設定 <code>LettuceConnectionFactory</code>（Redis 連線工廠）。
 
 <p>此方法解析 <code>knolux.redis.url</code> 的 URI scheme，並委派給對應的
 <a href="connection/LettuceConnectionFactoryBuilder.html" title="interface in com.knolux.redis.connection"><code>LettuceConnectionFactoryBuilder</code></a> 實作（策略模式）建立連線工廠。</div>
 <dl class="notes">
+<dt>Parameters:</dt>
+<dd><code>credentialsProviderFactory</code> - 動態憑證來源；不存在時沿用 URL 中的靜態密碼</dd>
 <dt>Returns:</dt>
 <dd>設定完成的 <code>LettuceConnectionFactory</code>，可直接被 <code>RedisTemplate</code> 使用</dd>
 <dt>Throws:</dt>
-<dd><code><a href="https://docs.oracle.com/en/java/javase/25/docs/api/java.base/java/lang/IllegalArgumentException.html" title="class or interface in java.lang" class="external-link">IllegalArgumentException</a></code> - 若 <code>knolux.redis.url</code> 未設定或為空白字串</dd>
+<dd><code><a href="https://docs.oracle.com/en/java/javase/25/docs/api/java.base/java/lang/IllegalArgumentException.html" title="class or interface in java.lang" class="external-link">IllegalArgumentException</a></code> - 若 <code>knolux.redis.url</code> 未設定、為空白字串或 scheme 不受支援</dd>
 </dl>
 </div>
 </section>

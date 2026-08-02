@@ -1,2 +1,3 @@
 com.knolux.redis
+com.knolux.redis.azure
 com.knolux.redis.connection
