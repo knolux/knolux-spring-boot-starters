@@ -1,8 +1,11 @@
 package com.knolux.redis;
 
+import com.knolux.redis.azure.KnoluxRedisEntraIdProperties;
+import io.lettuce.core.SslVerifyMode;
 import lombok.Getter;
 import lombok.Setter;
 import org.springframework.boot.context.properties.ConfigurationProperties;
+import org.springframework.boot.context.properties.NestedConfigurationProperty;
 
 import java.time.Duration;
 
@@ -33,11 +36,36 @@ import java.time.Duration;
  *     read-from: REPLICA_PREFERRED
  * }</pre>
  *
+ * <h3>Cluster（分片）模式</h3>
+ * <pre>{@code
+ * knolux:
+ *   redis:
+ *     url: redis-cluster://:mypassword@node1:6379
+ *     cluster:
+ *       max-redirects: 5
+ * }</pre>
+ *
+ * <h3>Azure Managed Redis（TLS + Entra ID 受控身分）</h3>
+ * <pre>{@code
+ * knolux:
+ *   redis:
+ *     url: rediss-cluster://mycache.eastus.redis.azure.net:10000
+ *     timeout-ms: 3000ms
+ *     azure:
+ *       entra-id:
+ *         enabled: true
+ *         identity: SYSTEM_ASSIGNED
+ * }</pre>
+ *
  * <h2>URL 格式說明</h2>
  * <ul>
  *   <li><strong>Standalone：</strong>{@code redis://[:password@]host:port[/db]}</li>
  *   <li><strong>Sentinel：</strong>{@code redis-sentinel://[:password@]sentinel-host:sentinel-port/master-name}</li>
+ *   <li><strong>Cluster：</strong>{@code redis-cluster://[:password@]seed-host:port}</li>
  * </ul>
+ *
+ * <p>三者各有對應的 TLS scheme：{@code rediss://}、{@code rediss-sentinel://}、
+ * {@code rediss-cluster://}。是否加密僅由 scheme 決定，另見 {@link Ssl}。
  *
  * @see KnoluxRedisAutoConfiguration
  */
@@ -127,4 +155,144 @@ public class KnoluxRedisProperties {
      * @see io.lettuce.core.ReadFrom
      */
     private String readFrom = "REPLICA_PREFERRED";
+
+    /**
+     * TLS 相關設定，僅在 URL 使用 {@code rediss} 系列 scheme 時生效。
+     */
+    @NestedConfigurationProperty
+    private Ssl ssl = new Ssl();
+
+    /**
+     * Cluster 模式設定，僅在 URL 使用 {@code redis-cluster://} 或
+     * {@code rediss-cluster://} scheme 時生效。
+     */
+    @NestedConfigurationProperty
+    private Cluster cluster = new Cluster();
+
+    /**
+     * Azure 專屬設定。
+     */
+    @NestedConfigurationProperty
+    private Azure azure = new Azure();
+
+    /**
+     * TLS 設定。
+     *
+     * <p><strong>此處刻意沒有 {@code enabled} 旗標</strong>：是否加密完全由 URL scheme
+     * 決定（{@code rediss://} / {@code rediss-sentinel://} / {@code rediss-cluster://}），
+     * 單一來源可避免「scheme 說要加密、旗標說不要」這種互相矛盾且難以察覺的無效狀態。
+     * 本類別只承載 scheme 表達不了的資訊。
+     *
+     * <pre>{@code
+     * knolux:
+     *   redis:
+     *     url: rediss://mycache.eastus.redis.azure.net:10000
+     *     ssl:
+     *       verify-peer: FULL
+     *       start-tls: false
+     * }</pre>
+     */
+    @Getter
+    @Setter
+    public static class Ssl {
+
+        /**
+         * 伺服器憑證驗證強度，預設 {@link SslVerifyMode#FULL}。
+         *
+         * <ul>
+         *   <li>{@code FULL} — 驗證憑證鏈與主機名稱，正式環境唯一正確的選項</li>
+         *   <li>{@code CA} — 僅驗證憑證鏈，不比對主機名稱。
+         *       用於憑證 CN／SAN 與實際連線位址不符的過渡情境</li>
+         *   <li>{@code NONE} — 完全不驗證。<strong>僅限測試環境</strong>，
+         *       設定此值會記錄 {@code WARN}，因為它讓連線可被中間人攔截</li>
+         * </ul>
+         */
+        private SslVerifyMode verifyPeer = SslVerifyMode.FULL;
+
+        /**
+         * 是否以 STARTTLS 方式在既有明文連線上協商升級為 TLS，預設 {@code false}。
+         *
+         * <p>Azure Managed Redis 直接以 TLS 建立連線，不使用 STARTTLS，維持預設即可。
+         */
+        private boolean startTls = false;
+    }
+
+    /**
+     * Cluster 模式設定。
+     *
+     * <pre>{@code
+     * knolux:
+     *   redis:
+     *     url: rediss-cluster://mycache.eastus.redis.azure.net:10000
+     *     cluster:
+     *       max-redirects: 5
+     *       topology-refresh:
+     *         enabled: true
+     *         period: 60s
+     *         adaptive: true
+     * }</pre>
+     */
+    @Getter
+    @Setter
+    public static class Cluster {
+
+        /**
+         * 單一指令允許的最大 {@code MOVED} / {@code ASK} 重導次數，預設 {@code 5}。
+         *
+         * <p>重新分片（resharding）期間 slot 會在節點間搬移，過低的值會讓指令在
+         * 搬移完成前就放棄。
+         */
+        private int maxRedirects = 5;
+
+        /**
+         * 叢集拓撲更新設定。
+         */
+        @NestedConfigurationProperty
+        private TopologyRefresh topologyRefresh = new TopologyRefresh();
+    }
+
+    /**
+     * 叢集拓撲更新設定。
+     *
+     * <p>預設為啟用，與 Lettuce 本身的預設（停用）相反。這是刻意的：
+     * Azure Managed Redis 的分片節點埠號位於動態範圍且會隨 failover／擴縮變動，
+     * 若不更新拓撲，客戶端會持續連向已消失的節點。
+     */
+    @Getter
+    @Setter
+    public static class TopologyRefresh {
+
+        /**
+         * 是否啟用拓撲更新，預設 {@code true}。
+         */
+        private boolean enabled = true;
+
+        /**
+         * 週期性更新的間隔，預設 {@code 60s}。
+         */
+        private Duration period = Duration.ofSeconds(60);
+
+        /**
+         * 是否啟用適應性更新（收到 {@code MOVED} / {@code ASK} 或連線異常時立即觸發），
+         * 預設 {@code true}。
+         *
+         * <p>週期性更新負責處理緩慢的拓撲漂移，適應性更新負責 failover 當下的即時收斂，
+         * 兩者互補。
+         */
+        private boolean adaptive = true;
+    }
+
+    /**
+     * Azure 專屬設定的容器。
+     */
+    @Getter
+    @Setter
+    public static class Azure {
+
+        /**
+         * Microsoft Entra ID token 驗證設定。
+         */
+        @NestedConfigurationProperty
+        private KnoluxRedisEntraIdProperties entraId = new KnoluxRedisEntraIdProperties();
+    }
 }

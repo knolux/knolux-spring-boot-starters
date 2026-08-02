@@ -13,6 +13,60 @@
 
 ## [Unreleased]
 
+尚無變更。
+
+---
+
+## [2026-08-03] — redis 1.5.0
+
+新增 Cluster 連線模式、TLS 支援，以及 Azure Managed Redis 的 Microsoft Entra ID 受控身分驗證。
+**無破壞性變更**：既有的 `redis://` 與 `redis-sentinel://` 設定行為完全不變，
+`LettuceConnectionFactoryBuilder` 介面簽章亦未更動。
+
+#### Added
+
+- **Cluster 連線模式** —— 新增 `redis-cluster://` scheme 與 `ClusterConnectionFactoryBuilder`
+  - `knolux.redis.cluster.max-redirects`（預設 `5`）—— 單一指令的最大 `MOVED` / `ASK` 重導次數
+  - `knolux.redis.cluster.topology-refresh.{enabled,period,adaptive}`
+    （預設 `true` / `60s` / `true`）—— **預設啟用，與 Lettuce 本身的預設相反**：
+    雲端託管的分片節點埠號會隨 failover／擴縮變動，不更新拓撲會讓客戶端持續連向已消失的節點
+  - Cluster 模式指定 DB ≠ 0 時 fail-fast（Redis Cluster 僅有 DB 0）
+- **TLS 支援** —— 三種模式各自新增 `rediss://` / `rediss-sentinel://` / `rediss-cluster://`
+  - `knolux.redis.ssl.verify-peer`（預設 `FULL`，可選 `CA` / `NONE`）—— 設為 `NONE` 會記錄 `WARN`
+  - `knolux.redis.ssl.start-tls`（預設 `false`）
+  - **刻意沒有 `ssl.enabled` 旗標**：是否加密只由 scheme 決定，
+    單一來源可避免「scheme 說要加密、旗標說不要」這種難以察覺的矛盾狀態
+- **Azure Managed Redis + Microsoft Entra ID 驗證** —— `knolux.redis.azure.entra-id.*`
+  - 四種身分來源：`SYSTEM_ASSIGNED`（預設）、`USER_ASSIGNED`、`DEFAULT_CHAIN`、`SERVICE_PRINCIPAL`
+  - token 在背景更新，並透過 `ClientOptions.ReauthenticateBehavior.ON_NEW_CREDENTIALS`
+    對**既有連線**重新 AUTH——少了這一步，連線池中的連線會在 token 到期時集體被拒絕
+  - 使用者名稱由函式庫自 JWT `oid` claim 取出，不需設定 username
+  - 啟動階段 fail-fast：明文 scheme、Sentinel scheme、URL 同時帶密碼、選用依賴缺席、
+    身分設定不全、`expiration-refresh-ratio` 超出 `(0, 1]` —— 皆拋例外而非靜默降級
+- `EntraIdCredentialsProviderFactory` 以 `@ConditionalOnMissingBean(RedisCredentialsProviderFactory.class)`
+  註冊，成為**替換憑證來源的公開擴充點**（可接其他 IdP 或測試用的假 `IdentityProvider`）
+- `LettuceClientConfigurationFactory` —— 集中 TLS / 逾時 / 讀取策略 / 憑證提供者的組裝，三個 builder 共用
+- `RedisUriUtils.isTls(URI)` 與 `RedisUriUtils.baseScheme(URI)`
+
+#### 選用依賴
+
+Entra ID 功能需要 `redis.clients.authentication:redis-authx-entraid:0.1.1-beta2`，
+本 starter 以 **`compileOnly`** 引入，**未啟用者不受影響**（不會背負 `msal4j` / `azure-identity` 等傳遞依賴）。
+啟用但 classpath 缺此依賴時，啟動會 fail-fast 並印出可直接複製的 Gradle / Maven 座標。
+
+**外溢給下游的 resolved 依賴集合逐字未變**（`compileOnly` 不進 `runtimeClasspath`），
+`gradle/dependency-baseline/knolux-redis-spring-boot-starter.txt` 無變動。
+
+#### Notes
+
+- 對應 scheme 的選擇取決於 Azure Managed Redis 建立時的 clustering policy：
+  **OSS**（預設）用 `rediss-cluster://`、**Enterprise** 用 `rediss://`。
+  用錯的症狀通常是逾時或 `MOVED` 錯誤，而非驗證失敗
+- token 輪替行為由 `KnoluxRedisTokenAuthIntegrationTest` 以 Testcontainers 驗證，**不需要 Azure 環境**：
+  以 `redis-authx-core` 的 `IdentityProvider` SPI 自製短效 token，並用 `CLIENT SETNAME` 標記
+  證明重新 AUTH 發生在**同一條連線**上，而非連線被悄悄重建
+- `KnoluxRedisAzureRealEndpointTest`（`@Disabled`）為連真實 Azure 端點的人工驗收測試
+
 ---
 
 ## [2026-08-02] — redis 1.4.1 · s3 1.3.1

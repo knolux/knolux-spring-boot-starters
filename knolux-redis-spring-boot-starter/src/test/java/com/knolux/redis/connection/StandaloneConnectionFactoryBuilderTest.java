@@ -9,7 +9,8 @@ import java.time.Duration;
 import static org.assertj.core.api.Assertions.assertThat;
 
 class StandaloneConnectionFactoryBuilderTest {
-    private final StandaloneConnectionFactoryBuilder builder = new StandaloneConnectionFactoryBuilder();
+    private final StandaloneConnectionFactoryBuilder builder =
+            new StandaloneConnectionFactoryBuilder(new LettuceClientConfigurationFactory(null));
 
     private KnoluxRedisProperties props(String readFrom) {
         KnoluxRedisProperties p = new KnoluxRedisProperties();
@@ -29,16 +30,60 @@ class StandaloneConnectionFactoryBuilderTest {
     }
 
     @Test
-    void does_not_support_rediss_scheme() {
-        // rediss://（TLS）尚未支援，不應被 standalone 接受並靜默以明文連線；
-        // 應由 Auto-Configuration 的 orElseThrow 明確拒絕
-        assertThat(builder.supports(URI.create("rediss://localhost:6379"))).isFalse();
+    void does_not_support_cluster_scheme() {
+        // redis-cluster:// 必須落到 ClusterConnectionFactoryBuilder；
+        // 被 standalone 吞下會讓客戶端不具 cluster 感知而在 MOVED 時失敗
+        assertThat(builder.supports(URI.create("redis-cluster://localhost:6379"))).isFalse();
+    }
+
+    @Test
+    void supports_rediss_scheme() {
+        // rediss://（TLS）與 redis:// 同屬 standalone 模式，差別僅在是否加密
+        assertThat(builder.supports(URI.create("rediss://localhost:6379"))).isTrue();
+    }
+
+    @Test
+    void does_not_support_scheme_with_rediss_prefix() {
+        // 「rediss 開頭」不等於 TLS scheme：錯字應 fail-fast 而非被誤收
+        assertThat(builder.supports(URI.create("redissomething://localhost:6379"))).isFalse();
     }
 
     @Test
     void supports_redis_scheme_caseInsensitive() {
         // RFC 3986：scheme 不分大小寫
         assertThat(builder.supports(URI.create("REDIS://localhost:6379"))).isTrue();
+    }
+
+    @Test
+    void supports_rediss_scheme_caseInsensitive() {
+        assertThat(builder.supports(URI.create("REDISS://localhost:6379"))).isTrue();
+    }
+
+    @Test
+    void plaintext_scheme_does_not_enable_ssl() {
+        assertThat(builder.build(URI.create("redis://localhost:6379"), props("MASTER"))
+                .getClientConfiguration().isUseSsl()).isFalse();
+    }
+
+    @Test
+    void tls_scheme_enables_ssl() {
+        assertThat(builder.build(URI.create("rediss://localhost:6379"), props("MASTER"))
+                .getClientConfiguration().isUseSsl()).isTrue();
+    }
+
+    @Test
+    void tls_scheme_keeps_standalone_host_and_port() {
+        // rediss:// 只影響傳輸層，不應改變節點座標的解析方式
+        var factory = builder.build(URI.create("rediss://cache.example.com:10000"), props("MASTER"));
+        assertThat(factory.getHostName()).isEqualTo("cache.example.com");
+        assertThat(factory.getPort()).isEqualTo(10000);
+    }
+
+    @Test
+    void master_read_from_is_not_set() {
+        // 既有行為：純 MASTER 時不設定 readFrom，Lettuce 便不啟動 topology refresh
+        assertThat(builder.build(URI.create("redis://localhost:6379"), props("MASTER"))
+                .getClientConfiguration().getReadFrom()).isEmpty();
     }
 
     @Test

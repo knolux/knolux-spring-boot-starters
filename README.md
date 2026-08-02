@@ -10,7 +10,7 @@
 
 | 模組                                                                               | Artifact                                      | 說明                                                                           |
 |----------------------------------------------------------------------------------|-----------------------------------------------|------------------------------------------------------------------------------|
-| [knolux-redis-spring-boot-starter](./knolux-redis-spring-boot-starter/README.md) | `com.knolux:knolux-redis-spring-boot-starter` | Redis Starter — 透過 URL scheme 自動切換 Standalone / Sentinel 模式（Lettuce 客戶端）     |
+| [knolux-redis-spring-boot-starter](./knolux-redis-spring-boot-starter/README.md) | `com.knolux:knolux-redis-spring-boot-starter` | Redis Starter — 透過 URL scheme 自動切換 Standalone / Sentinel / Cluster 模式，支援 TLS 與 Azure Entra ID 受控身分驗證（Lettuce 客戶端） |
 | [knolux-s3-spring-boot-starter](./knolux-s3-spring-boot-starter/README.md)       | `com.knolux:knolux-s3-spring-boot-starter`    | S3 Starter — AWS SDK v2 非同步 client，支援 SeaweedFS / MinIO / Nginx 反向代理（路徑前綴移除） |
 
 ---
@@ -31,7 +31,7 @@ repositories {
 }
 
 dependencies {
-    implementation("com.knolux:knolux-redis-spring-boot-starter:1.4.1")
+    implementation("com.knolux:knolux-redis-spring-boot-starter:1.5.0")
     implementation("com.knolux:knolux-s3-spring-boot-starter:1.3.1")
 }
 ```
@@ -47,7 +47,7 @@ dependencies {
 <dependency>
     <groupId>com.knolux</groupId>
     <artifactId>knolux-redis-spring-boot-starter</artifactId>
-    <version>1.4.1</version>
+    <version>1.5.0</version>
 </dependency>
 <dependency>
     <groupId>com.knolux</groupId>
@@ -94,6 +94,34 @@ knolux:
     timeout-ms: 3000ms
     read-from: REPLICA_PREFERRED
 ```
+
+### Redis（Cluster）
+
+```yaml
+knolux:
+  redis:
+    url: redis-cluster://:password@node1:6379
+    cluster:
+      max-redirects: 5
+```
+
+### Redis（Azure Managed Redis + Entra ID 受控身分）
+
+設定檔不留任何密碼；token 在背景更新並對既有連線重新 AUTH。
+
+```yaml
+knolux:
+  redis:
+    url: rediss-cluster://mycache.eastus.redis.azure.net:10000
+    timeout-ms: 3000ms
+    azure:
+      entra-id:
+        enabled: true
+        identity: SYSTEM_ASSIGNED   # SYSTEM_ASSIGNED / USER_ASSIGNED / DEFAULT_CHAIN / SERVICE_PRINCIPAL
+```
+
+需額外加入選用依賴 `redis.clients.authentication:redis-authx-entraid`（本 starter 以 `compileOnly` 引入），
+scheme 須依 Azure 的 clustering policy 選擇——詳見 [Redis 模組 README](./knolux-redis-spring-boot-starter/README.md#azure-managed-redis--microsoft-entra-id)。
 
 ### S3（SeaweedFS / MinIO / AWS S3）
 
@@ -147,7 +175,8 @@ byte[] content = s3Template.download(spec, AsyncResponseTransformer.toBytes())
 ### SOLID 設計
 
 - **單一職責原則（SRP）** — 連線工廠、HTTP client 工廠、簽章器分離為獨立類別
-- **開閉原則（OCP）** — Redis 透過 `LettuceConnectionFactoryBuilder` 策略介面擴充新模式（Cluster 等）無須改動既有程式碼
+- **開閉原則（OCP）** — Redis 透過 `LettuceConnectionFactoryBuilder` 策略介面擴充新模式無須改動既有程式碼；
+  Cluster 支援即是以此方式新增，未動到既有的 Standalone / Sentinel 分支
 - **依賴反轉原則（DIP）** — `KnoluxS3Template` 依賴 `S3ClientProvider` 抽象介面，可注入自訂實作或測試替身
 
 ### Virtual Thread 整合

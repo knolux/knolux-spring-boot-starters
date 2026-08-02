@@ -10,7 +10,8 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatIllegalArgumentException;
 
 class SentinelConnectionFactoryBuilderTest {
-    private final SentinelConnectionFactoryBuilder builder = new SentinelConnectionFactoryBuilder();
+    private final SentinelConnectionFactoryBuilder builder =
+            new SentinelConnectionFactoryBuilder(new LettuceClientConfigurationFactory(null));
 
     private KnoluxRedisProperties props() {
         KnoluxRedisProperties p = new KnoluxRedisProperties();
@@ -33,6 +34,33 @@ class SentinelConnectionFactoryBuilderTest {
     void supports_sentinel_scheme_caseInsensitive() {
         // RFC 3986：scheme 不分大小寫，Redis-Sentinel:// 不應被誤判為 Standalone
         assertThat(builder.supports(URI.create("Redis-Sentinel://host:26379/master"))).isTrue();
+    }
+
+    @Test
+    void supports_tls_sentinel_scheme() {
+        assertThat(builder.supports(URI.create("rediss-sentinel://host:26379/master"))).isTrue();
+    }
+
+    @Test
+    void plaintext_scheme_does_not_enable_ssl() {
+        assertThat(builder.build(URI.create("redis-sentinel://host:26379/mymaster"), props())
+                .getClientConfiguration().isUseSsl()).isFalse();
+    }
+
+    @Test
+    void tls_scheme_enables_ssl() {
+        assertThat(builder.build(URI.create("rediss-sentinel://host:26379/mymaster"), props())
+                .getClientConfiguration().isUseSsl()).isTrue();
+    }
+
+    @Test
+    void read_from_is_set_even_for_master() {
+        // 既有行為必須保留：Sentinel 未設定 readFrom 就不會進入 MasterReplica 模式，
+        // 與 Standalone 的「MASTER 時略過」刻意不同
+        KnoluxRedisProperties p = props();
+        p.setReadFrom("MASTER");
+        assertThat(builder.build(URI.create("redis-sentinel://host:26379/mymaster"), p)
+                .getClientConfiguration().getReadFrom()).isPresent();
     }
 
     @Test
