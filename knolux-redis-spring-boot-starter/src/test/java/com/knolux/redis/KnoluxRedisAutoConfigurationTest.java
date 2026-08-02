@@ -1,9 +1,14 @@
 package com.knolux.redis;
 
+import com.knolux.redis.azure.EntraIdCredentialsProviderFactory;
+import io.lettuce.core.ClientOptions;
 import org.junit.jupiter.api.Test;
 import org.springframework.boot.autoconfigure.AutoConfigurations;
 import org.springframework.boot.test.context.runner.ApplicationContextRunner;
+import org.springframework.context.ApplicationContext;
+import org.springframework.data.redis.connection.lettuce.LettuceClientConfiguration;
 import org.springframework.data.redis.connection.lettuce.LettuceConnectionFactory;
+import org.springframework.data.redis.connection.lettuce.RedisCredentialsProviderFactory;
 import org.springframework.data.redis.core.RedisTemplate;
 import org.springframework.data.redis.core.StringRedisTemplate;
 import org.springframework.data.redis.serializer.StringRedisSerializer;
@@ -24,6 +29,9 @@ import static org.assertj.core.api.Assertions.assertThat;
  * <ul>
  *   <li>Standalone 模式（{@code redis://}）下的 Bean 建立</li>
  *   <li>Sentinel 模式（{@code redis-sentinel://}）下的 Bean 建立</li>
+ *   <li>Cluster 模式（{@code redis-cluster://}）下的 Bean 建立與 DB 限制</li>
+ *   <li>TLS scheme（{@code rediss} 系列）是否正確啟用加密</li>
+ *   <li>Azure Entra ID token 驗證的裝配與各條 fail-fast 規則</li>
  *   <li>各種讀取策略（{@code readFrom}）設定</li>
  *   <li>URL 未設定或為空時的錯誤處理</li>
  *   <li>{@link org.springframework.boot.autoconfigure.condition.ConditionalOnMissingBean} 覆寫機制</li>
@@ -42,6 +50,13 @@ class KnoluxRedisAutoConfigurationTest {
      */
     private final ApplicationContextRunner contextRunner = new ApplicationContextRunner()
             .withConfiguration(AutoConfigurations.of(KnoluxRedisAutoConfiguration.class));
+
+    /**
+     * 取出自動設定所建立之連線工廠的客戶端設定，用於驗證 TLS 與憑證等橫切設定。
+     */
+    private static LettuceClientConfiguration clientConfigurationOf(ApplicationContext ctx) {
+        return ctx.getBean(LettuceConnectionFactory.class).getClientConfiguration();
+    }
 
     // ─────────────────────────────────────────────
     // 直連模式（redis://）
@@ -151,6 +166,94 @@ class KnoluxRedisAutoConfigurationTest {
                 )
                 .run(ctx ->
                         assertThat(ctx).hasSingleBean(LettuceConnectionFactory.class)
+                );
+    }
+
+    // ─────────────────────────────────────────────
+    // Cluster 模式（redis-cluster://）
+    // ─────────────────────────────────────────────
+
+    /**
+     * 驗證 Cluster 模式下，自動設定能正確建立連線工廠。
+     *
+     * <p>URL 中的節點為<strong>種子節點</strong>，客戶端連上後會以 {@code CLUSTER SHARDS}
+     * 取得完整拓撲，因此只列一個節點即可。
+     */
+    @Test
+    void cluster_shouldCreateConnectionFactory() {
+        contextRunner
+                .withPropertyValues("knolux.redis.url=redis-cluster://localhost:6379")
+                .run(ctx ->
+                        assertThat(ctx).hasSingleBean(LettuceConnectionFactory.class)
+                );
+    }
+
+    /**
+     * 驗證 Cluster 模式指定 DB 時明確失敗。
+     *
+     * <p>Cluster 協定只有 DB 0，靜默忽略會讓使用者以為資料寫進了指定的 DB。
+     */
+    @Test
+    void cluster_withNonZeroDb_shouldFailWithIllegalArgumentException() {
+        contextRunner
+                .withPropertyValues("knolux.redis.url=redis-cluster://localhost:6379/3")
+                .run(ctx ->
+                        assertThat(ctx)
+                                .getFailure()
+                                .hasMessageContaining("Cluster 模式僅支援 DB 0")
+                );
+    }
+
+    // ─────────────────────────────────────────────
+    // TLS scheme（rediss 系列）
+    // ─────────────────────────────────────────────
+
+    /**
+     * 驗證 {@code rediss://} 會建立啟用 TLS 的 Standalone 連線工廠。
+     */
+    @Test
+    void tlsStandalone_shouldEnableSsl() {
+        contextRunner
+                .withPropertyValues("knolux.redis.url=rediss://localhost:6380")
+                .run(ctx ->
+                        assertThat(clientConfigurationOf(ctx).isUseSsl()).isTrue()
+                );
+    }
+
+    /**
+     * 驗證 {@code rediss-sentinel://} 會建立啟用 TLS 的 Sentinel 連線工廠。
+     */
+    @Test
+    void tlsSentinel_shouldEnableSsl() {
+        contextRunner
+                .withPropertyValues("knolux.redis.url=rediss-sentinel://localhost:26379/mymaster")
+                .run(ctx ->
+                        assertThat(clientConfigurationOf(ctx).isUseSsl()).isTrue()
+                );
+    }
+
+    /**
+     * 驗證 {@code rediss-cluster://} 會建立啟用 TLS 的 Cluster 連線工廠，
+     * 這正是 Azure Managed Redis（OSS clustering policy）所需的組合。
+     */
+    @Test
+    void tlsCluster_shouldEnableSsl() {
+        contextRunner
+                .withPropertyValues("knolux.redis.url=rediss-cluster://mycache.eastus.redis.azure.net:10000")
+                .run(ctx ->
+                        assertThat(clientConfigurationOf(ctx).isUseSsl()).isTrue()
+                );
+    }
+
+    /**
+     * 驗證明文 scheme 不會意外啟用 TLS——加密與否只由 scheme 決定。
+     */
+    @Test
+    void plaintextScheme_shouldNotEnableSsl() {
+        contextRunner
+                .withPropertyValues("knolux.redis.url=redis://localhost:6379")
+                .run(ctx ->
+                        assertThat(clientConfigurationOf(ctx).isUseSsl()).isFalse()
                 );
     }
 
@@ -344,13 +447,32 @@ class KnoluxRedisAutoConfigurationTest {
     }
 
     /**
-     * 驗證不支援的 scheme（例如 {@code rediss://}）會明確失敗，
-     * 而非靜默被當成明文 standalone 連線（安全性）。
+     * 驗證不支援的 scheme 會明確失敗，而非被某個 builder 靜默收下（安全性）。
+     *
+     * <p>此處刻意不用 {@code rediss://} 當樣本 —— 該 scheme 自 1.5.0 起已是合法的
+     * TLS standalone 連線。改用完全不相干的 {@code http://}，才真正測到 fail-fast 路徑。
      */
     @Test
     void unsupportedScheme_shouldFailWithIllegalArgumentException() {
         contextRunner
-                .withPropertyValues("knolux.redis.url=rediss://localhost:6379")
+                .withPropertyValues("knolux.redis.url=http://localhost:6379")
+                .run(ctx ->
+                        assertThat(ctx)
+                                .getFailure()
+                                .hasMessageContaining("不支援的 Redis URI scheme")
+                );
+    }
+
+    /**
+     * 驗證「開頭像 TLS scheme 但其實是錯字」的值不會被 Standalone 收下。
+     *
+     * <p>這是 {@code RedisUriUtils} 採具名別名表而非 {@code startsWith("rediss")}
+     * 字首比對的理由：字首比對會讓 {@code redissl://} 這類錯字靜默連上明文。
+     */
+    @Test
+    void schemeWithTlsPrefixTypo_shouldFailWithIllegalArgumentException() {
+        contextRunner
+                .withPropertyValues("knolux.redis.url=redissl://localhost:6379")
                 .run(ctx ->
                         assertThat(ctx)
                                 .getFailure()
@@ -385,6 +507,177 @@ class KnoluxRedisAutoConfigurationTest {
                     LettuceConnectionFactory factory =
                             ctx.getBean("customFactory", LettuceConnectionFactory.class);
                     assertThat(factory.getHostName()).isEqualTo("custom-host");
+                });
+    }
+
+    // ─────────────────────────────────────────────
+    // Azure Entra ID token 驗證
+    // ─────────────────────────────────────────────
+
+    /**
+     * 驗證未啟用 Entra ID 時（預設）不會建立憑證提供者工廠，
+     * 連線工廠也維持原本的靜態密碼行為。
+     *
+     * <p>{@code ReauthenticateBehavior} 必須維持 Lettuce 預設：
+     * 靜態密碼的使用者不需要、也不應該被改變重新驗證的行為。
+     */
+    @Test
+    void entraIdDisabled_shouldNotCreateCredentialsProviderFactory() {
+        contextRunner
+                .withPropertyValues("knolux.redis.url=redis://localhost:6379")
+                .run(ctx -> {
+                    assertThat(ctx).doesNotHaveBean(RedisCredentialsProviderFactory.class);
+
+                    LettuceClientConfiguration clientConfig = clientConfigurationOf(ctx);
+                    assertThat(clientConfig.getRedisCredentialsProviderFactory()).isEmpty();
+                    assertThat(clientConfig.getClientOptions().orElseThrow().getReauthenticateBehaviour())
+                            .isEqualTo(ClientOptions.ReauthenticateBehavior.DEFAULT);
+                });
+    }
+
+    /**
+     * 驗證啟用 Entra ID 後會建立 {@link EntraIdCredentialsProviderFactory} Bean。
+     *
+     * <p>此處刻意注入自訂的 {@link LettuceConnectionFactory} 讓自動設定的連線工廠退場：
+     * 連線工廠一旦建立就會向憑證提供者索取 token，單元測試不該真的對 Entra ID 發出請求。
+     * 憑證提供者工廠本身是獨立 Bean，仍會被建立，故此測試依然涵蓋裝配路徑。
+     */
+    @Test
+    void entraIdEnabled_shouldCreateEntraIdCredentialsProviderFactory() {
+        contextRunner
+                .withPropertyValues(
+                        "knolux.redis.url=rediss-cluster://mycache.eastus.redis.azure.net:10000",
+                        "knolux.redis.azure.entra-id.enabled=true"
+                )
+                .withBean(
+                        "customFactory",
+                        LettuceConnectionFactory.class,
+                        () -> new LettuceConnectionFactory("custom-host", 6379)
+                )
+                .run(ctx ->
+                        assertThat(ctx).hasSingleBean(EntraIdCredentialsProviderFactory.class)
+                );
+    }
+
+    /**
+     * 驗證啟用 Entra ID 但使用明文 scheme 時明確失敗（FR-041）。
+     *
+     * <p>bearer token 是純字串憑證，任何攔截到的人都能直接冒用，不得走明文連線。
+     */
+    @Test
+    void entraIdEnabled_withPlaintextScheme_shouldFail() {
+        contextRunner
+                .withPropertyValues(
+                        "knolux.redis.url=redis-cluster://mycache.eastus.redis.azure.net:10000",
+                        "knolux.redis.azure.entra-id.enabled=true"
+                )
+                .run(ctx ->
+                        assertThat(ctx)
+                                .getFailure()
+                                .hasMessageContaining("rediss-cluster://")
+                );
+    }
+
+    /**
+     * 驗證啟用 Entra ID 但使用 Sentinel scheme 時明確失敗（FR-042）——Azure 不提供 Sentinel。
+     */
+    @Test
+    void entraIdEnabled_withSentinelScheme_shouldFail() {
+        contextRunner
+                .withPropertyValues(
+                        "knolux.redis.url=rediss-sentinel://sentinel:26379/mymaster",
+                        "knolux.redis.azure.entra-id.enabled=true"
+                )
+                .run(ctx ->
+                        assertThat(ctx)
+                                .getFailure()
+                                .hasMessageContaining("Sentinel")
+                );
+    }
+
+    /**
+     * 驗證啟用 Entra ID 但 URL 內含密碼時明確失敗（FR-043）——兩個憑證來源同時存在時，
+     * 哪一個生效取決於實作細節，與其讓使用者誤以為密碼仍是備援，不如逼他明確二擇一。
+     */
+    @Test
+    void entraIdEnabled_withPasswordInUrl_shouldFail() {
+        contextRunner
+                .withPropertyValues(
+                        "knolux.redis.url=rediss://:secret@mycache.eastus.redis.azure.net:10000",
+                        "knolux.redis.azure.entra-id.enabled=true"
+                )
+                .run(ctx ->
+                        assertThat(ctx)
+                                .getFailure()
+                                .hasMessageContaining("密碼")
+                );
+    }
+
+    /**
+     * 驗證 {@code identity=USER_ASSIGNED} 缺少識別碼時明確失敗（FR-044）。
+     */
+    @Test
+    void entraIdEnabled_userAssignedWithoutId_shouldFail() {
+        contextRunner
+                .withPropertyValues(
+                        "knolux.redis.url=rediss://mycache.eastus.redis.azure.net:10000",
+                        "knolux.redis.azure.entra-id.enabled=true",
+                        "knolux.redis.azure.entra-id.identity=USER_ASSIGNED"
+                )
+                .run(ctx ->
+                        assertThat(ctx)
+                                .getFailure()
+                                .hasMessageContaining("user-assigned-id")
+                );
+    }
+
+    /**
+     * 驗證 {@code identity=SERVICE_PRINCIPAL} 缺少必要欄位時，訊息逐項指名缺哪些（FR-045）。
+     */
+    @Test
+    void entraIdEnabled_servicePrincipalMissingFields_shouldFail() {
+        contextRunner
+                .withPropertyValues(
+                        "knolux.redis.url=rediss://mycache.eastus.redis.azure.net:10000",
+                        "knolux.redis.azure.entra-id.enabled=true",
+                        "knolux.redis.azure.entra-id.identity=SERVICE_PRINCIPAL",
+                        "knolux.redis.azure.entra-id.client-id=my-app-id"
+                )
+                .run(ctx ->
+                        assertThat(ctx)
+                                .getFailure()
+                                .hasMessageContaining("client-secret")
+                                .hasMessageContaining("authority")
+                );
+    }
+
+    /**
+     * 驗證使用者自訂的 {@link RedisCredentialsProviderFactory} 會取代內建的 Entra ID 實作，
+     * 且連線工廠確實會採用它並開啟 {@code ON_NEW_CREDENTIALS}。
+     *
+     * <p>這是 1.5.0 新增的擴充點：token 來源不限於 Entra ID，
+     * 任何能提供 {@link io.lettuce.core.RedisCredentialsProvider} 的實作都能接上。
+     * 開啟重新驗證是動態憑證能長期運作的關鍵——少了它，背景更新取得的新憑證只會套用到
+     * 之後新建的連線，連線池中既有的連線會在舊憑證失效時集體被 Redis 拒絕。
+     */
+    @Test
+    void userDefinedCredentialsProviderFactory_shouldNotBeOverridden() {
+        RedisCredentialsProviderFactory custom = new RedisCredentialsProviderFactory() {
+        };
+
+        contextRunner
+                .withPropertyValues(
+                        "knolux.redis.url=rediss://mycache.eastus.redis.azure.net:10000",
+                        "knolux.redis.azure.entra-id.enabled=true"
+                )
+                .withBean("customCredentials", RedisCredentialsProviderFactory.class, () -> custom)
+                .run(ctx -> {
+                    assertThat(ctx).doesNotHaveBean(EntraIdCredentialsProviderFactory.class);
+
+                    LettuceClientConfiguration clientConfig = clientConfigurationOf(ctx);
+                    assertThat(clientConfig.getRedisCredentialsProviderFactory()).contains(custom);
+                    assertThat(clientConfig.getClientOptions().orElseThrow().getReauthenticateBehaviour())
+                            .isEqualTo(ClientOptions.ReauthenticateBehavior.ON_NEW_CREDENTIALS);
                 });
     }
 

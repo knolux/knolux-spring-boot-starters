@@ -4,7 +4,6 @@ import com.knolux.redis.KnoluxRedisProperties;
 import com.knolux.redis.RedisUriUtils;
 import org.springframework.data.redis.connection.RedisPassword;
 import org.springframework.data.redis.connection.RedisStandaloneConfiguration;
-import org.springframework.data.redis.connection.lettuce.LettuceClientConfiguration;
 import org.springframework.data.redis.connection.lettuce.LettuceConnectionFactory;
 
 import java.net.URI;
@@ -12,17 +11,27 @@ import java.net.URI;
 /**
  * Standalone（直連）模式的 {@link LettuceConnectionFactoryBuilder} 實作。
  *
- * <p>支援 {@code redis://} scheme，直接連接單一 Redis 節點。
+ * <p>支援 {@code redis://}（明文）與 {@code rediss://}（TLS）scheme，直接連接單一 Redis 節點。
  */
 public class StandaloneConnectionFactoryBuilder implements LettuceConnectionFactoryBuilder {
 
+    private final LettuceClientConfigurationFactory clientConfigurationFactory;
+
+    /**
+     * @param clientConfigurationFactory 客戶端設定工廠，承載 TLS、逾時與憑證來源等橫切設定
+     */
+    public StandaloneConnectionFactoryBuilder(LettuceClientConfigurationFactory clientConfigurationFactory) {
+        this.clientConfigurationFactory = clientConfigurationFactory;
+    }
+
     @Override
     public boolean supports(URI uri) {
-        // 僅接受 redis:// scheme（大小寫不敏感，RFC 3986 規定 scheme 不分大小寫）。
-        // 不再以「非 sentinel 即 standalone」的 catch-all 方式吞下任意 scheme：
-        // 如此未知 scheme（含 rediss:// — 本 starter 尚未支援 TLS）會在 Auto-Configuration
-        // 落入 orElseThrow 得到明確錯誤，而非被靜默當成明文 standalone 連線。
-        return uri.getScheme() != null && "redis".equalsIgnoreCase(uri.getScheme());
+        // 比對「去除 TLS 標記後的基礎 scheme」，因此 redis:// 與 rediss:// 都由本 builder 處理
+        // ——兩者同屬 standalone 模式，差別僅在傳輸層是否加密。
+        // 仍不採「非 sentinel 即 standalone」的 catch-all：未知 scheme（含錯字如
+        // redissomething://）會在 Auto-Configuration 落入 orElseThrow 得到明確錯誤，
+        // 而非被靜默當成明文 standalone 連線。
+        return "redis".equals(RedisUriUtils.baseScheme(uri));
     }
 
     @Override
@@ -38,16 +47,6 @@ public class StandaloneConnectionFactoryBuilder implements LettuceConnectionFact
             config.setPassword(RedisPassword.of(password));
         }
 
-        String readFrom = properties.getReadFrom();
-        var builder = LettuceClientConfiguration.builder()
-                .commandTimeout(properties.getTimeoutMs());
-
-        // 純 MASTER / UPSTREAM 時不設定 readFrom，Lettuce 不會啟動 topology refresh；
-        // 其他策略（含 LOWEST_LATENCY、ANY、ANY_REPLICA、subnet:、regex: 等）啟用讀寫分離
-        if (!RedisUriUtils.isMasterOnly(readFrom)) {
-            builder.readFrom(RedisUriUtils.parseReadFrom(readFrom));
-        }
-
-        return new LettuceConnectionFactory(config, builder.build());
+        return new LettuceConnectionFactory(config, clientConfigurationFactory.create(uri, properties));
     }
 }

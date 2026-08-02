@@ -4,6 +4,8 @@ import io.lettuce.core.ReadFrom;
 import lombok.extern.slf4j.Slf4j;
 
 import java.net.URI;
+import java.util.Locale;
+import java.util.Map;
 
 /**
  * Redis URI 解析工具，將 URL 字串解析邏輯從 {@link KnoluxRedisAutoConfiguration} 中分離。
@@ -14,7 +16,56 @@ import java.net.URI;
 @Slf4j
 public final class RedisUriUtils {
 
+    /**
+     * TLS scheme 至其明文對應 scheme 的別名表。
+     *
+     * <p>刻意採「具名別名表」而非 {@code startsWith("rediss")} 字首比對：
+     * 字首比對會把 {@code redissomething://} 之類的錯字誤判為合法 TLS scheme，
+     * 進而落入某個 builder 而非在 Auto-Configuration 得到明確錯誤。
+     * 新增連線模式時在此補一組對應即可。
+     */
+    private static final Map<String, String> TLS_SCHEME_ALIASES = Map.of(
+            "rediss", "redis",
+            "rediss-sentinel", "redis-sentinel",
+            "rediss-cluster", "redis-cluster"
+    );
+
     private RedisUriUtils() {
+    }
+
+    /**
+     * 判斷 URI 是否使用 TLS（{@code rediss} 系列 scheme）。
+     *
+     * <p>本 starter 以 scheme 單一來源決定是否加密，不另設 {@code ssl.enabled} 旗標，
+     * 避免出現「{@code rediss://} 但 {@code ssl.enabled=false}」這種互相矛盾的無效狀態。
+     *
+     * <p>支援的 TLS scheme（不區分大小寫，RFC 3986 規定 scheme 不分大小寫）：
+     * {@code rediss://}、{@code rediss-sentinel://}、{@code rediss-cluster://}。
+     *
+     * @param uri 已解析的 Redis URI，可為 {@code null}
+     * @return {@code true} 當 scheme 為已知的 TLS 別名
+     */
+    public static boolean isTls(URI uri) {
+        return baseScheme(uri) != null
+                && TLS_SCHEME_ALIASES.containsKey(uri.getScheme().toLowerCase(Locale.ROOT));
+    }
+
+    /**
+     * 取得 URI 的「基礎 scheme」——轉為小寫並去除 TLS 標記。
+     *
+     * <p>例如 {@code REDISS-CLUSTER://} 與 {@code redis-cluster://} 都會得到
+     * {@code "redis-cluster"}，讓各 builder 的 {@code supports()} 只需比對一個值，
+     * 不必為每種模式重複寫「明文或 TLS」的雙重判斷。
+     *
+     * <p>未知 scheme 原樣以小寫回傳（不做任何猜測式改寫），交由呼叫端 fail-fast。
+     *
+     * @param uri 已解析的 Redis URI，可為 {@code null}
+     * @return 小寫且去除 TLS 標記的 scheme；URI 或 scheme 為 {@code null} 時回傳 {@code null}
+     */
+    public static String baseScheme(URI uri) {
+        if (uri == null || uri.getScheme() == null) return null;
+        String scheme = uri.getScheme().toLowerCase(Locale.ROOT);
+        return TLS_SCHEME_ALIASES.getOrDefault(scheme, scheme);
     }
 
     /**
