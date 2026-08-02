@@ -20,16 +20,23 @@
 ### ⚠️ 升級前必讀：`knolux-redis-spring-boot-starter` 的傳遞依賴破壞性變更
 
 `spring-boot-starter-data-redis` 在 redis 模組為 **`api` scope**，傳遞依賴會直接曝露給下游。
-Spring Boot 4.1.0 帶來兩項可能影響直接使用底層型別之程式碼的變動：
+Spring Boot 4.1.0 帶來一項可能影響直接使用底層型別之程式碼的變動：
 
 | 依賴 | redis 1.3.0 | redis 1.4.0 | 影響 |
 |---|---|---|---|
 | `io.lettuce:lettuce-core` | 6.8.2.RELEASE | **7.5.2.RELEASE** | **跨 major 版本** |
-| `io.netty:*` | 4.1.125 與 4.2.12 並存 | **統一為 4.2.x**（4.1.x 已移除） | Netty 4.1 API 不再可用 |
 
 直接使用 Lettuce 型別（`io.lettuce.core.ReadFrom`、`RedisClient`、`ClientOptions`，
 或自訂 `LettuceClientConfigurationBuilderCustomizer`）者，升級前請先確認 Lettuce 7 的變更說明。
 僅透過 `knolux.redis.*` 設定使用者不受影響。
+
+> **2026-08-02 更正**：本段原另列一項「`io.netty:*` 由 4.1.125 與 4.2.12 並存統一為 4.2.x（4.1.x 已移除）」，
+> 該項**不成立**，已移除。以 `dependencyChangeReport` 重建 redis 1.3.0 的解析結果比對後確認：
+> 1.3.0 的 `runtimeClasspath` 上 Netty 全數已是 `4.2.12.Final`，並無 4.1.x，故 1.4.0 沒有 Netty 移除事件
+> （實際變動為 `4.2.12.Final` → `4.2.15.Final`，屬 patch，已列於下方非破壞性清單）。
+> 原判讀誤把 `./gradlew dependencies` 輸出中括號內的 *requested* 版本（`lettuce-core:6.8.2.RELEASE`
+> 確實 requested `netty:4.1.125.Final`，但被 Spring Boot BOM 選為 `4.2.12.Final`）當成了解析結果。
+> 若曾據此評估升級風險，Netty 部分無需處理；Lettuce 的 major 跳動則不受影響，仍然成立。
 
 `knolux-s3-spring-boot-starter` 的傳遞依賴無跨 major 變動。
 
@@ -45,10 +52,10 @@ Spring Boot 4.1.0 帶來兩項可能影響直接使用底層型別之程式碼�
 其餘傳遞依賴變動（非破壞性）：
 
 - redis — `spring-data-redis` 4.0.5 → 4.1.0、新增 `spring-messaging`、
-  `snakeyaml` 2.5 → 2.6、`logback` 1.5.32 → 1.5.34
-- s3 — `httpcore5` 5.3.6 → 5.4.x、`httpclient5` 5.6.1 → 5.6.2、
-  Netty 4.1.133 → 4.1.136 / 4.2.12 → 4.2.15
-- 兩者 — Spring Framework 7.0.7 → 7.0.8
+  `snakeyaml` 2.5 → 2.6、`logback` 1.5.32 → 1.5.34、Netty 4.2.12 → 4.2.15
+- s3 — AWS SDK 2.46.3 → 2.49.3、`httpcore5` 5.3.6 → 5.4.2、`httpclient5` 5.5.2 → 5.6.1、
+  Netty 4.2.12 → 4.2.15
+- 兩者 — Spring Framework 7.0.7 → 7.0.8、Micrometer 1.16.5 → 1.17.0
 
 ### Added
 

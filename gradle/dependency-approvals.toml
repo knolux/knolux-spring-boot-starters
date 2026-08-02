@@ -1,0 +1,27 @@
+# 傳遞依賴破壞性變更的核准紀錄
+#
+# 用途：`./gradlew checkDependencyCompatibility` 攔截到破壞性變更時，若該變更是「刻意為之
+# 且已對下游揭露」，在此加入一筆 [[approval]] 讓建置通過。核准同時是書面紀錄——
+# reason 會原文出現在閘門報告與 CHANGELOG 的「升級前必讀」段落，請寫給人看。
+#
+# 格式（contracts/file-formats.md §2）：
+#
+#   [[approval]]
+#   module     = "knolux-redis-spring-boot-starter"   # 模組名
+#   coordinate = "io.lettuce:lettuce-core"            # group:artifact
+#   kind       = "MAJOR"                              # MAJOR / REMOVED / DOWNGRADE / UNPARSEABLE
+#   from       = "6.8.2.RELEASE"                      # 基準線版本，逐字
+#   to         = "7.5.2.RELEASE"                      # 當前版本，逐字；kind = "REMOVED" 時省略
+#   reason     = "隨 Spring Boot 4.1.0 升級而必然發生；已於 CHANGELOG 揭露"
+#
+# 五個欄位（module / coordinate / kind / from / to）必須**全部逐字相符**才生效。
+# 刻意不支援萬用字元與版本區間：核准的是「這一次、這個依賴、從這一版到那一版」
+# 這個具體事實，不是一類事實。**版本一動，核准即失效並需重新審視**——這是讓核准
+# 無法退化成「永久關閉閘門」的關鍵。
+#
+# 打錯字不會被靜默忽略：欄位缺漏、kind 不合法、格式錯誤都會讓建置失敗並指出是第幾項。
+#
+# 基準線推進後（`./gradlew updateDependencyBaseline`），已配不到任何差異的核准會被自動
+# 清除——留著只會讓這份檔案越積越長，最終沒有人敢動，也就沒有人會再審視它。
+#
+# 目前零筆核准。
