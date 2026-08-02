@@ -3,28 +3,34 @@ package com.knolux.build.depgate.task
 import com.knolux.build.depgate.Approval
 import com.knolux.build.depgate.ApprovalMatcher
 import com.knolux.build.depgate.ApprovalStore
-import com.knolux.build.depgate.DependencyGraphReader
 import com.knolux.build.depgate.DependencySet
-import com.knolux.build.depgate.DependencySetBuilder
+import com.knolux.build.depgate.DependencySnapshot
 import org.gradle.api.DefaultTask
-import org.gradle.api.artifacts.result.ResolvedComponentResult
 import org.gradle.api.file.DirectoryProperty
+import org.gradle.api.file.RegularFile
 import org.gradle.api.file.RegularFileProperty
 import org.gradle.api.provider.MapProperty
 import org.gradle.api.tasks.Internal
 import java.io.File
 
 /**
- * 三個閘門任務共用的接線（憲章 III：composition root 只負責組裝，不放判斷邏輯）。
+ * 四個閘門任務共用的接線（憲章 III：composition root 只負責組裝，不放判斷邏輯）。
  *
- * 所有屬性標為 `@Internal`：`ResolvedComponentResult` 無法作為輸入指紋，而閘門的
- * 正確結果取決於 git 狀態與遠端 ref，本來就不該被 up-to-date 檢查略過。任務因此每次都執行。
+ * 所有屬性標為 `@Internal`：閘門的正確結果取決於 git 狀態與遠端 ref，本來就不該被
+ * up-to-date 檢查略過。任務因此每次都執行。快照檔同理不宣告為 `@InputFiles`——
+ * 那會讓 Gradle 認為可以跳過。任務依賴改以顯式 `dependsOn` 建立。
  */
 abstract class DependencyGateTask : DefaultTask() {
 
-    /** 模組名 → 該模組 `runtimeClasspath` 的解析根元件。 */
+    /**
+     * 模組名 → 該模組的依賴快照檔（由 [ResolveModuleDependenciesTask] 產生）。
+     *
+     * 閘門**不自己解析** `runtimeClasspath`：那是跨專案解析，根專案的任務拿不到目標
+     * configuration 的 exclusive lock，在 `--parallel` 下會失敗。改由模組自己解析後寫檔，
+     * 根專案只負責讀檔與判定——理由詳見 [DependencySnapshot]。
+     */
     @get:Internal
-    abstract val rootComponents: MapProperty<String, ResolvedComponentResult>
+    abstract val moduleSnapshots: MapProperty<String, RegularFile>
 
     /** 基準線檔所在目錄（`gradle/dependency-baseline`）。 */
     @get:Internal
@@ -43,13 +49,13 @@ abstract class DependencyGateTask : DefaultTask() {
     }
 
     /**
-     * 解析各模組當前的依賴集合，依模組名排序。
+     * 讀入各模組當前的依賴集合，依模組名排序。
      *
      * 排序是硬性要求：報告會被貼進 CHANGELOG，模組順序浮動會讓兩次執行的輸出無從比對。
      */
     protected fun currentDependencySets(): Map<String, DependencySet> =
-        rootComponents.get().toSortedMap().mapValues { (moduleName, root) ->
-            DependencySetBuilder.build(moduleName, DependencyGraphReader.read(root))
+        moduleSnapshots.get().toSortedMap().mapValues { (moduleName, snapshot) ->
+            DependencySnapshot.read(moduleName, snapshot.asFile)
         }
 
     /** 載入核准檔；格式錯誤一律 fail-fast（[ApprovalStore]）。 */

@@ -47,6 +47,6 @@ abstract class CheckDependencyBaselineTask : DependencyGateTask() {
             throw GradleException("依賴基準線與當前解析結果不一致（${problems.size} 個模組）；詳見上方輸出。")
         }
 
-        logger.lifecycle("依賴基準線：✅ ${rootComponents.get().size} 個模組與簽入內容一致")
+        logger.lifecycle("依賴基準線：✅ ${moduleSnapshots.get().size} 個模組與簽入內容一致")
     }
 }
