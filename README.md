@@ -31,8 +31,8 @@ repositories {
 }
 
 dependencies {
-    implementation("com.knolux:knolux-redis-spring-boot-starter:1.4.0")
-    implementation("com.knolux:knolux-s3-spring-boot-starter:1.3.0")
+    implementation("com.knolux:knolux-redis-spring-boot-starter:1.4.1")
+    implementation("com.knolux:knolux-s3-spring-boot-starter:1.3.1")
 }
 ```
 
@@ -47,12 +47,12 @@ dependencies {
 <dependency>
     <groupId>com.knolux</groupId>
     <artifactId>knolux-redis-spring-boot-starter</artifactId>
-    <version>1.4.0</version>
+    <version>1.4.1</version>
 </dependency>
 <dependency>
     <groupId>com.knolux</groupId>
     <artifactId>knolux-s3-spring-boot-starter</artifactId>
-    <version>1.3.0</version>
+    <version>1.3.1</version>
 </dependency>
 ```
 
