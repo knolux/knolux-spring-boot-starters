@@ -9,7 +9,7 @@ redis-authx-entraid = "0.1.1-beta2"
 # 以下兩項僅供 buildSrc（依賴閘門的建置邏輯）使用，不進入任何發布的 artifact。
 # buildSrc 取不到 Spring Boot BOM，故版號必須寫死；junit 版號請與主專案由 BOM 解析出的版本一致。
 tomlj = "1.1.1"
-junit = "6.0.3"
+junit = "6.1.2"
 
 [libraries]
 spring-boot-autoconfigure = { module = "org.springframework.boot:spring-boot-autoconfigure" }
