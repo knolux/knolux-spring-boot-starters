@@ -1,7 +1,7 @@
 [versions]
 testcontainers-redis = "2.2.4"
 testcontainers = "1.21.4"
-awssdk = "2.50.1"
+awssdk = "2.53.1"
 # Redis Entra ID token 驗證的選用依賴（compileOnly，不外溢給下游）。
 # 上游目前僅發布 beta：0.1.1-beta2 為 Maven Central 上的最新版本。
 # 對應的 redis-authx-core 已由 lettuce-core 7.5.2 以傳遞依賴帶入，版號須與此一致。
